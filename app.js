@@ -463,6 +463,99 @@
     closeDeleteModal();
   }
 
+  // --- Bulk Add ---
+  const $bulkOverlay = document.getElementById("bulk-modal-overlay");
+  const $bulkTextarea = document.getElementById("bulk-textarea");
+  const $bulkType = document.getElementById("bulk-type");
+  const $bulkStatus = document.getElementById("bulk-status");
+  const $bulkPreview = document.getElementById("bulk-preview");
+
+  function parseBulkLines() {
+    return $bulkTextarea.value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const commaIdx = line.indexOf(",");
+        if (commaIdx !== -1) {
+          return {
+            name: line.slice(0, commaIdx).trim(),
+            location: line.slice(commaIdx + 1).trim(),
+          };
+        }
+        return { name: line, location: "" };
+      });
+  }
+
+  function updateBulkPreview() {
+    const entries = parseBulkLines();
+    if (entries.length === 0) {
+      $bulkPreview.hidden = true;
+      return;
+    }
+    const dupes = entries.filter((e) =>
+      applications.some((a) => a.name.toLowerCase() === e.name.toLowerCase())
+    );
+    let html = `<strong>${entries.length}</strong> college${entries.length !== 1 ? "s" : ""} will be added.`;
+    if (dupes.length > 0) {
+      html += ` <span class="bulk-warn">${dupes.length} duplicate${dupes.length !== 1 ? "s" : ""} detected: ${dupes.map((d) => d.name).join(", ")}</span>`;
+    }
+    $bulkPreview.innerHTML = html;
+    $bulkPreview.hidden = false;
+  }
+
+  function openBulkModal() {
+    $bulkTextarea.value = "";
+    $bulkType.value = "Regular Decision";
+    $bulkStatus.value = "Researching";
+    $bulkPreview.hidden = true;
+    $bulkOverlay.classList.add("active");
+    $bulkTextarea.focus();
+  }
+
+  function closeBulkModal() {
+    $bulkOverlay.classList.remove("active");
+  }
+
+  function submitBulk() {
+    const entries = parseBulkLines();
+    if (entries.length === 0) return;
+    const defaultType = $bulkType.value;
+    const defaultStatus = $bulkStatus.value;
+    const emptyChecklist = { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false };
+
+    entries.forEach((entry) => {
+      applications.push({
+        id: generateId(),
+        addedAt: Date.now(),
+        name: entry.name,
+        location: entry.location,
+        type: defaultType,
+        deadline: "",
+        status: defaultStatus,
+        decisionDate: "",
+        portal: "",
+        fee: null,
+        notes: "",
+        checklist: { ...emptyChecklist },
+      });
+    });
+
+    saveApplications(applications);
+    renderTable();
+    closeBulkModal();
+  }
+
+  $bulkTextarea.addEventListener("input", updateBulkPreview);
+
+  document.getElementById("btn-bulk-add").addEventListener("click", openBulkModal);
+  document.getElementById("bulk-modal-close").addEventListener("click", closeBulkModal);
+  document.getElementById("bulk-cancel").addEventListener("click", closeBulkModal);
+  document.getElementById("bulk-submit").addEventListener("click", submitBulk);
+  $bulkOverlay.addEventListener("click", (e) => {
+    if (e.target === $bulkOverlay) closeBulkModal();
+  });
+
   // --- Event Listeners ---
   document.getElementById("btn-add").addEventListener("click", () => openModal(null));
   document.getElementById("modal-close").addEventListener("click", closeModal);
@@ -505,6 +598,7 @@
     if (e.key === "Escape") {
       closeModal();
       closeDeleteModal();
+      closeBulkModal();
     }
   });
 
