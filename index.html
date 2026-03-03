@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>College Application Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>College Application Tracker</h1>
+    <p class="subtitle">Keep track of every application in one place</p>
+  </header>
+
+  <main>
+    <!-- Stats Dashboard -->
+    <section class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <span class="stat-number" id="stat-total">0</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat-card stat-researching">
+        <span class="stat-number" id="stat-researching">0</span>
+        <span class="stat-label">Researching</span>
+      </div>
+      <div class="stat-card stat-in-progress">
+        <span class="stat-number" id="stat-in-progress">0</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+      <div class="stat-card stat-submitted">
+        <span class="stat-number" id="stat-submitted">0</span>
+        <span class="stat-label">Submitted</span>
+      </div>
+      <div class="stat-card stat-accepted">
+        <span class="stat-number" id="stat-accepted">0</span>
+        <span class="stat-label">Accepted</span>
+      </div>
+      <div class="stat-card stat-rejected">
+        <span class="stat-number" id="stat-rejected">0</span>
+        <span class="stat-label">Rejected</span>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="controls">
+      <button class="btn btn-primary" id="btn-add">+ Add College</button>
+      <div class="controls-right">
+        <input type="text" id="search-input" placeholder="Search colleges..." />
+        <select id="filter-status">
+          <option value="all">All Statuses</option>
+          <option value="Researching">Researching</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Waitlisted">Waitlisted</option>
+          <option value="Deferred">Deferred</option>
+          <option value="Withdrawn">Withdrawn</option>
+        </select>
+        <select id="sort-by">
+          <option value="deadline">Sort by Deadline</option>
+          <option value="name">Sort by Name</option>
+          <option value="status">Sort by Status</option>
+          <option value="added">Sort by Date Added</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Application Table -->
+    <section class="table-container">
+      <table id="app-table">
+        <thead>
+          <tr>
+            <th>College Name</th>
+            <th>Type</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Decision</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="app-tbody">
+        </tbody>
+      </table>
+      <div class="empty-state" id="empty-state">
+        <p>No applications yet. Click <strong>+ Add College</strong> to get started!</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Add College</h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <form id="app-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="college-name">College Name *</label>
+            <input type="text" id="college-name" required placeholder="e.g. MIT" />
+          </div>
+          <div class="form-group">
+            <label for="college-location">Location</label>
+            <input type="text" id="college-location" placeholder="e.g. Cambridge, MA" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-type">Application Type</label>
+            <select id="app-type">
+              <option value="Regular Decision">Regular Decision</option>
+              <option value="Early Action">Early Action</option>
+              <option value="Early Decision">Early Decision</option>
+              <option value="Early Decision II">Early Decision II</option>
+              <option value="Rolling">Rolling</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="app-deadline">Deadline</label>
+            <input type="date" id="app-deadline" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-status">Status</label>
+            <select id="app-status">
+              <option value="Researching">Researching</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Waitlisted">Waitlisted</option>
+              <option value="Deferred">Deferred</option>
+              <option value="Withdrawn">Withdrawn</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="decision-date">Decision Date</label>
+            <input type="date" id="decision-date" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-portal">Application Portal URL</label>
+            <input type="url" id="app-portal" placeholder="https://..." />
+          </div>
+          <div class="form-group">
+            <label for="app-fee">Application Fee ($)</label>
+            <input type="number" id="app-fee" min="0" step="1" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-row checklist-section">
+          <div class="form-group full-width">
+            <label>Checklist</label>
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" id="chk-essay" /> Essays</label>
+              <label class="check-item"><input type="checkbox" id="chk-lor" /> Letters of Rec</label>
+              <label class="check-item"><input type="checkbox" id="chk-transcript" /> Transcript</label>
+              <label class="check-item"><input type="checkbox" id="chk-scores" /> Test Scores</label>
+              <label class="check-item"><input type="checkbox" id="chk-financial" /> Financial Aid</label>
+              <label class="check-item"><input type="checkbox" id="chk-interview" /> Interview</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label for="app-notes">Notes</label>
+          <textarea id="app-notes" rows="3" placeholder="Any extra notes..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal-overlay">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="modal-close" id="delete-modal-close">&times;</button>
+      </div>
+      <p id="delete-msg">Are you sure you want to delete this application?</p>
+      <div class="form-actions">
+        <button class="btn btn-secondary" id="delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
