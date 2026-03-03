@@ -16,7 +16,174 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
   }
 
+  const DEFAULT_COLLEGES = [
+    {
+      id: "seed01", addedAt: 1,
+      name: "Massachusetts Institute of Technology", location: "Cambridge, MA",
+      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
+      decisionDate: "2026-03-14", portal: "", fee: 75,
+      notes: "Submitted supplemental essays on research experience",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed02", addedAt: 2,
+      name: "Stanford University", location: "Stanford, CA",
+      type: "Regular Decision", deadline: "2026-01-02", status: "Submitted",
+      decisionDate: "2026-04-01", portal: "", fee: 90,
+      notes: "Wrote about community impact for short essays",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed03", addedAt: 3,
+      name: "Harvard University", location: "Cambridge, MA",
+      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 85,
+      notes: "Optional interview completed in December",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed04", addedAt: 4,
+      name: "Yale University", location: "New Haven, CT",
+      type: "Regular Decision", deadline: "2026-01-02", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 80,
+      notes: "Highlighted interest in humanities program",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed05", addedAt: 5,
+      name: "Princeton University", location: "Princeton, NJ",
+      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 70,
+      notes: "Graded written paper submitted",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed06", addedAt: 6,
+      name: "University of Chicago", location: "Chicago, IL",
+      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
+      decisionDate: "2026-01-15", portal: "", fee: 75,
+      notes: "Accepted! Need to compare financial aid package",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed07", addedAt: 7,
+      name: "Georgia Institute of Technology", location: "Atlanta, GA",
+      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
+      decisionDate: "2026-01-20", portal: "", fee: 75,
+      notes: "Accepted into College of Engineering",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed08", addedAt: 8,
+      name: "University of Michigan", location: "Ann Arbor, MI",
+      type: "Early Action", deadline: "2025-11-01", status: "Deferred",
+      decisionDate: "", portal: "", fee: 75,
+      notes: "Deferred to regular decision pool. Sent LOCI in January",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed09", addedAt: 9,
+      name: "University of California, Berkeley", location: "Berkeley, CA",
+      type: "Regular Decision", deadline: "2025-11-30", status: "Submitted",
+      decisionDate: "2026-03-25", portal: "", fee: 80,
+      notes: "Applied to College of Letters & Science",
+      checklist: { essay: true, lor: false, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed10", addedAt: 10,
+      name: "University of California, Los Angeles", location: "Los Angeles, CA",
+      type: "Regular Decision", deadline: "2025-11-30", status: "Submitted",
+      decisionDate: "2026-03-20", portal: "", fee: 80,
+      notes: "Used same personal insight questions as Berkeley",
+      checklist: { essay: true, lor: false, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed11", addedAt: 11,
+      name: "Columbia University", location: "New York, NY",
+      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 85,
+      notes: "Focused on core curriculum appeal in essays",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed12", addedAt: 12,
+      name: "Duke University", location: "Durham, NC",
+      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 85,
+      notes: "Wrote optional \"Why Duke\" essay",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed13", addedAt: 13,
+      name: "Northwestern University", location: "Evanston, IL",
+      type: "Regular Decision", deadline: "2026-01-03", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 75,
+      notes: "Applied to Weinberg College of Arts & Sciences",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed14", addedAt: 14,
+      name: "Carnegie Mellon University", location: "Pittsburgh, PA",
+      type: "Regular Decision", deadline: "2026-01-03", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 75,
+      notes: "Applied to School of Computer Science",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed15", addedAt: 15,
+      name: "University of Virginia", location: "Charlottesville, VA",
+      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
+      decisionDate: "2026-01-25", portal: "", fee: 70,
+      notes: "In-state safety school. Accepted into honors program!",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed16", addedAt: 16,
+      name: "Rice University", location: "Houston, TX",
+      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 75,
+      notes: "Mentioned residential college system in \"Why Rice\" essay",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed17", addedAt: 17,
+      name: "Brown University", location: "Providence, RI",
+      type: "Regular Decision", deadline: "2026-01-05", status: "Submitted",
+      decisionDate: "2026-03-28", portal: "", fee: 75,
+      notes: "Open curriculum was a big draw. Wrote about interdisciplinary interests",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
+    },
+    {
+      id: "seed18", addedAt: 18,
+      name: "University of Wisconsin-Madison", location: "Madison, WI",
+      type: "Rolling", deadline: "2026-02-01", status: "Accepted",
+      decisionDate: "2026-02-15", portal: "", fee: 60,
+      notes: "Rolling admission, accepted quickly. Good backup option",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed19", addedAt: 19,
+      name: "Boston University", location: "Boston, MA",
+      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
+      decisionDate: "2026-03-15", portal: "", fee: 80,
+      notes: "Applied to College of Engineering",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+    {
+      id: "seed20", addedAt: 20,
+      name: "University of Southern California", location: "Los Angeles, CA",
+      type: "Regular Decision", deadline: "2026-01-15", status: "Submitted",
+      decisionDate: "2026-04-01", portal: "", fee: 85,
+      notes: "Applied for merit scholarship consideration",
+      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
+    },
+  ];
+
   let applications = loadApplications();
+  if (applications.length === 0) {
+    applications = DEFAULT_COLLEGES;
+    saveApplications(applications);
+  }
   let editingId = null;
   let deletingId = null;
 
