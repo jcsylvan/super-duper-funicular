@@ -2,6 +2,32 @@
   "use strict";
 
   const STORAGE_KEY = "college_applications";
+  const PROFILE_KEY = "student_profile";
+
+  // Admissions reference data keyed by lowercase college name
+  // avgGpa: average admitted GPA, satLow/satHigh: SAT middle-50%, acceptRate: %
+  const ADMISSIONS_DATA = {
+    "massachusetts institute of technology": { avgGpa: 3.96, satLow: 1510, satHigh: 1580, acceptRate: 4 },
+    "stanford university":                   { avgGpa: 3.96, satLow: 1500, satHigh: 1570, acceptRate: 4 },
+    "harvard university":                    { avgGpa: 3.97, satLow: 1490, satHigh: 1580, acceptRate: 3 },
+    "yale university":                       { avgGpa: 3.95, satLow: 1490, satHigh: 1560, acceptRate: 5 },
+    "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1570, acceptRate: 4 },
+    "university of chicago":                 { avgGpa: 3.95, satLow: 1500, satHigh: 1570, acceptRate: 5 },
+    "georgia institute of technology":       { avgGpa: 3.85, satLow: 1370, satHigh: 1530, acceptRate: 17 },
+    "university of michigan":                { avgGpa: 3.90, satLow: 1380, satHigh: 1540, acceptRate: 18 },
+    "university of california, berkeley":    { avgGpa: 3.89, satLow: 1390, satHigh: 1530, acceptRate: 12 },
+    "university of california, los angeles": { avgGpa: 3.90, satLow: 1360, satHigh: 1520, acceptRate: 9 },
+    "columbia university":                   { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 4 },
+    "duke university":                       { avgGpa: 3.94, satLow: 1490, satHigh: 1570, acceptRate: 6 },
+    "northwestern university":               { avgGpa: 3.93, satLow: 1480, satHigh: 1560, acceptRate: 7 },
+    "carnegie mellon university":            { avgGpa: 3.90, satLow: 1480, satHigh: 1560, acceptRate: 11 },
+    "university of virginia":                { avgGpa: 3.85, satLow: 1350, satHigh: 1510, acceptRate: 19 },
+    "rice university":                       { avgGpa: 3.94, satLow: 1490, satHigh: 1560, acceptRate: 8 },
+    "brown university":                      { avgGpa: 3.94, satLow: 1480, satHigh: 1560, acceptRate: 5 },
+    "university of wisconsin-madison":       { avgGpa: 3.80, satLow: 1300, satHigh: 1480, acceptRate: 49 },
+    "boston university":                      { avgGpa: 3.75, satLow: 1350, satHigh: 1510, acceptRate: 14 },
+    "university of southern california":     { avgGpa: 3.85, satLow: 1400, satHigh: 1530, acceptRate: 12 },
+  };
 
   // --- Data ---
   function loadApplications() {
@@ -216,6 +242,10 @@
     chkScores: document.getElementById("chk-scores"),
     chkFinancial: document.getElementById("chk-financial"),
     chkInterview: document.getElementById("chk-interview"),
+    avgGpa: document.getElementById("college-avg-gpa"),
+    satLow: document.getElementById("college-sat-low"),
+    satHigh: document.getElementById("college-sat-high"),
+    acceptRate: document.getElementById("college-accept-rate"),
   };
 
   // --- Helpers ---
@@ -249,6 +279,110 @@
 
   function statusClass(status) {
     return "status-" + status.toLowerCase().replace(/\s+/g, "-");
+  }
+
+  // --- Profile ---
+  function loadProfile() {
+    try {
+      return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveProfile(p) {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  }
+
+  let profile = loadProfile();
+
+  // --- Fit Scoring ---
+  // Returns { label, score, tooltip } or null if not enough data
+  function computeFit(app) {
+    const p = profile;
+    if (!p.gpa && !p.sat && !p.act) return null;
+
+    // Get stats: prefer per-college overrides, fall back to reference data
+    const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
+    const avgGpa = app.avgGpa ?? ref.avgGpa;
+    const satLow = app.satLow ?? ref.satLow;
+    const satHigh = app.satHigh ?? ref.satHigh;
+    const acceptRate = app.acceptRate ?? ref.acceptRate;
+
+    if (avgGpa == null && satLow == null && acceptRate == null) return null;
+
+    let totalWeight = 0;
+    let totalScore = 0;
+    const tips = [];
+
+    // GPA component (0-100)
+    if (p.gpa && avgGpa) {
+      const diff = p.gpa - avgGpa;
+      // +0.2 above avg => 100, at avg => 60, -0.3 below => 0
+      const gpaScore = Math.max(0, Math.min(100, 60 + diff * 200));
+      totalScore += gpaScore * 35;
+      totalWeight += 35;
+      tips.push(`GPA: ${p.gpa} vs avg ${avgGpa}`);
+    }
+
+    // SAT component (0-100)
+    if (p.sat && satLow && satHigh) {
+      const mid = (satLow + satHigh) / 2;
+      const range = (satHigh - satLow) / 2 || 1;
+      // At mid => 60, at high => 85, above high by range => 100, at low => 35
+      const satScore = Math.max(0, Math.min(100, 60 + ((p.sat - mid) / range) * 25));
+      totalScore += satScore * 30;
+      totalWeight += 30;
+      tips.push(`SAT: ${p.sat} vs ${satLow}-${satHigh}`);
+    }
+
+    // ACT component — convert to SAT-equivalent for scoring
+    if (p.act && satLow && satHigh && !p.sat) {
+      // Rough ACT-to-SAT: SAT ~ (ACT - 1) * 34.3 + 420
+      const satEquiv = Math.round((p.act - 1) * 34.3 + 420);
+      const mid = (satLow + satHigh) / 2;
+      const range = (satHigh - satLow) / 2 || 1;
+      const actScore = Math.max(0, Math.min(100, 60 + ((satEquiv - mid) / range) * 25));
+      totalScore += actScore * 30;
+      totalWeight += 30;
+      tips.push(`ACT: ${p.act} (~${satEquiv} SAT) vs ${satLow}-${satHigh}`);
+    }
+
+    // Acceptance rate component (0-100) — lower accept rate = harder
+    if (acceptRate != null) {
+      // 50%+ => 90, 20% => 55, 5% => 20
+      const arScore = Math.max(0, Math.min(100, acceptRate * 1.6 + 10));
+      totalScore += arScore * 25;
+      totalWeight += 25;
+      tips.push(`Accept: ${acceptRate}%`);
+    }
+
+    // Extracurricular boost
+    if (p.ecStrength && acceptRate != null && acceptRate < 20) {
+      const ecBoost = (p.ecStrength - 2) * 5; // -5 for low, 0 for avg, +5 strong, +10 exceptional
+      totalScore += ecBoost * totalWeight / 100;
+    }
+
+    if (totalWeight === 0) return null;
+
+    const finalScore = Math.round(totalScore / totalWeight);
+
+    let label, cls;
+    if (finalScore >= 70) {
+      label = "Safety";
+      cls = "fit-safety";
+    } else if (finalScore >= 50) {
+      label = "Match";
+      cls = "fit-match";
+    } else if (finalScore >= 30) {
+      label = "Reach";
+      cls = "fit-reach";
+    } else {
+      label = "Far Reach";
+      cls = "fit-far-reach";
+    }
+
+    return { label, cls, score: finalScore, tooltip: tips.join(" | ") };
   }
 
   // --- Stats ---
@@ -289,6 +423,13 @@
         case "status": {
           const order = ["Researching", "In Progress", "Submitted", "Waitlisted", "Deferred", "Accepted", "Rejected", "Withdrawn"];
           return order.indexOf(a.status) - order.indexOf(b.status);
+        }
+        case "fit": {
+          const fa = computeFit(a);
+          const fb = computeFit(b);
+          const sa = fa ? fa.score : -1;
+          const sb = fb ? fb.score : -1;
+          return sb - sa;
         }
         case "added":
         default:
@@ -347,12 +488,20 @@
 
       const notesPreview = app.notes ? escapeHtml(app.notes.length > 40 ? app.notes.slice(0, 40) + "..." : app.notes) : "—";
 
+      // Fit badge
+      const fit = computeFit(app);
+      let fitHtml = '<span class="fit-badge fit-na" title="Set your profile to see fit">—</span>';
+      if (fit) {
+        fitHtml = `<span class="fit-badge ${fit.cls}" title="${escapeHtml(fit.tooltip)}">${escapeHtml(fit.label)}<span class="fit-score">${fit.score}</span></span>`;
+      }
+
       tr.innerHTML = `
         <td class="col-name">
           <strong>${escapeHtml(app.name)}</strong>
           ${app.location ? '<span class="college-location">' + escapeHtml(app.location) + "</span>" : ""}
           ${app.portal ? '<a class="portal-link" href="' + escapeHtml(app.portal) + '" target="_blank" rel="noopener noreferrer">Portal</a>' : ""}
         </td>
+        <td class="col-fit">${fitHtml}</td>
         <td>${escapeHtml(app.type)}</td>
         <td>${deadlineHtml}</td>
         <td><span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span></td>
@@ -389,6 +538,12 @@
       fields.chkScores.checked = app.checklist?.scores || false;
       fields.chkFinancial.checked = app.checklist?.financial || false;
       fields.chkInterview.checked = app.checklist?.interview || false;
+      // Admissions stats — prefer stored values, fall back to reference
+      const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
+      fields.avgGpa.value = app.avgGpa ?? ref.avgGpa ?? "";
+      fields.satLow.value = app.satLow ?? ref.satLow ?? "";
+      fields.satHigh.value = app.satHigh ?? ref.satHigh ?? "";
+      fields.acceptRate.value = app.acceptRate ?? ref.acceptRate ?? "";
     } else {
       editingId = null;
       $modalTitle.textContent = "Add College";
@@ -436,6 +591,10 @@
         financial: fields.chkFinancial.checked,
         interview: fields.chkInterview.checked,
       },
+      avgGpa: fields.avgGpa.value ? Number(fields.avgGpa.value) : null,
+      satLow: fields.satLow.value ? Number(fields.satLow.value) : null,
+      satHigh: fields.satHigh.value ? Number(fields.satHigh.value) : null,
+      acceptRate: fields.acceptRate.value ? Number(fields.acceptRate.value) : null,
     };
 
     if (!data.name) return;
@@ -601,6 +760,56 @@
       closeBulkModal();
     }
   });
+
+  // --- Profile Panel ---
+  const $profileBody = document.getElementById("profile-body");
+  const $profileArrow = document.getElementById("profile-arrow");
+  const $profileSummary = document.getElementById("profile-summary");
+  const profileFields = {
+    gpa: document.getElementById("profile-gpa"),
+    sat: document.getElementById("profile-sat"),
+    act: document.getElementById("profile-act"),
+    aps: document.getElementById("profile-aps"),
+    ecStrength: document.getElementById("profile-ec-strength"),
+  };
+
+  function updateProfileSummary() {
+    const parts = [];
+    if (profile.gpa) parts.push(`GPA ${profile.gpa}`);
+    if (profile.sat) parts.push(`SAT ${profile.sat}`);
+    if (profile.act) parts.push(`ACT ${profile.act}`);
+    $profileSummary.textContent = parts.length ? parts.join(" / ") : "Not set — click to expand";
+  }
+
+  function populateProfileFields() {
+    profileFields.gpa.value = profile.gpa || "";
+    profileFields.sat.value = profile.sat || "";
+    profileFields.act.value = profile.act || "";
+    profileFields.aps.value = profile.aps || "";
+    profileFields.ecStrength.value = profile.ecStrength || "";
+    updateProfileSummary();
+  }
+
+  document.getElementById("profile-toggle").addEventListener("click", () => {
+    const hidden = $profileBody.hidden;
+    $profileBody.hidden = !hidden;
+    $profileArrow.textContent = hidden ? "\u25B2" : "\u25BC";
+  });
+
+  document.getElementById("profile-save").addEventListener("click", () => {
+    profile = {
+      gpa: profileFields.gpa.value ? Number(profileFields.gpa.value) : null,
+      sat: profileFields.sat.value ? Number(profileFields.sat.value) : null,
+      act: profileFields.act.value ? Number(profileFields.act.value) : null,
+      aps: profileFields.aps.value ? Number(profileFields.aps.value) : null,
+      ecStrength: profileFields.ecStrength.value ? Number(profileFields.ecStrength.value) : null,
+    };
+    saveProfile(profile);
+    updateProfileSummary();
+    renderTable();
+  });
+
+  populateProfileFields();
 
   // --- Init ---
   renderTable();

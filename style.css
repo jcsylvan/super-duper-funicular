@@ -448,6 +448,110 @@ tbody tr:hover {
   margin-top: 1.25rem;
 }
 
+/* === Profile Panel === */
+.profile-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.profile-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text);
+  text-align: left;
+}
+
+.profile-toggle-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+}
+
+.profile-toggle-summary {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.profile-toggle-arrow {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.profile-body {
+  padding: 0 1rem 1rem;
+}
+
+/* === Fit Badges === */
+.col-fit {
+  white-space: nowrap;
+}
+
+.fit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: default;
+}
+
+.fit-score {
+  font-size: 0.65rem;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.fit-safety { background: #d1fae5; color: #065f46; }
+.fit-match { background: #dbeafe; color: #1e40af; }
+.fit-reach { background: #fef3c7; color: #92400e; }
+.fit-far-reach { background: #fee2e2; color: #991b1b; }
+.fit-na { background: #f3f4f6; color: #9ca3af; font-weight: 400; }
+
+/* === Range Inputs === */
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.range-inputs input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
+
+.range-inputs input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.range-sep {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 /* === Bulk Add === */
 .bulk-instructions {
   font-size: 0.875rem;

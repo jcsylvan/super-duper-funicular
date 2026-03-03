@@ -41,6 +41,51 @@
       </div>
     </section>
 
+    <!-- My Profile -->
+    <section class="profile-panel" id="profile-panel">
+      <button class="profile-toggle" id="profile-toggle">
+        <span class="profile-toggle-label">My Profile</span>
+        <span class="profile-toggle-summary" id="profile-summary"></span>
+        <span class="profile-toggle-arrow" id="profile-arrow">&#9660;</span>
+      </button>
+      <div class="profile-body" id="profile-body" hidden>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="profile-gpa">GPA (unweighted, 0&ndash;4.0)</label>
+            <input type="number" id="profile-gpa" min="0" max="4.0" step="0.01" placeholder="e.g. 3.85" />
+          </div>
+          <div class="form-group">
+            <label for="profile-sat">SAT Score (400&ndash;1600)</label>
+            <input type="number" id="profile-sat" min="400" max="1600" step="10" placeholder="e.g. 1450" />
+          </div>
+          <div class="form-group">
+            <label for="profile-act">ACT Score (1&ndash;36)</label>
+            <input type="number" id="profile-act" min="1" max="36" step="1" placeholder="e.g. 33" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="profile-aps">AP / IB / Honors Courses</label>
+            <input type="number" id="profile-aps" min="0" step="1" placeholder="e.g. 8" />
+          </div>
+          <div class="form-group">
+            <label for="profile-ec-strength">Extracurricular Strength</label>
+            <select id="profile-ec-strength">
+              <option value="">-- Select --</option>
+              <option value="1">Low</option>
+              <option value="2">Average</option>
+              <option value="3">Strong</option>
+              <option value="4">Exceptional</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" id="profile-save">Save Profile</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Controls -->
     <section class="controls">
       <button class="btn btn-primary" id="btn-add">+ Add College</button>
@@ -63,6 +108,7 @@
           <option value="name">Sort by Name</option>
           <option value="status">Sort by Status</option>
           <option value="added">Sort by Date Added</option>
+          <option value="fit">Sort by Fit</option>
         </select>
       </div>
     </section>
@@ -73,6 +119,7 @@
         <thead>
           <tr>
             <th>College Name</th>
+            <th>Fit</th>
             <th>Type</th>
             <th>Deadline</th>
             <th>Status</th>
@@ -151,6 +198,24 @@
           <div class="form-group">
             <label for="app-fee">Application Fee ($)</label>
             <input type="number" id="app-fee" min="0" step="1" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="college-avg-gpa">Avg Admitted GPA</label>
+            <input type="number" id="college-avg-gpa" min="0" max="4.0" step="0.01" placeholder="e.g. 3.9" />
+          </div>
+          <div class="form-group">
+            <label for="college-sat-mid">SAT Middle 50% (low&ndash;high)</label>
+            <div class="range-inputs">
+              <input type="number" id="college-sat-low" min="400" max="1600" step="10" placeholder="Low" />
+              <span class="range-sep">&ndash;</span>
+              <input type="number" id="college-sat-high" min="400" max="1600" step="10" placeholder="High" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="college-accept-rate">Acceptance Rate (%)</label>
+            <input type="number" id="college-accept-rate" min="0" max="100" step="0.1" placeholder="e.g. 5.5" />
           </div>
         </div>
         <div class="form-row checklist-section">
