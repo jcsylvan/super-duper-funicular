@@ -6,8 +6,7 @@
   //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("YOUR_PASSWORD"))
   //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("")))
   // Note: a client-side gate deters casual access only; the page source is still public.
-  // CHANGE THIS BEFORE DEPLOYING. The default password below is "changeme".
-  const PASSWORD_HASH = "057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86";
+  const PASSWORD_HASH = "7b2e9f882fb00c76d3863ad4d12a8254bc146fdcf8934dfb20322f6598f03e0c";
 
   const SESSION_KEY = "college_tracker_auth";
 
