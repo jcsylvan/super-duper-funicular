@@ -601,6 +601,157 @@ tbody tr:hover {
   font-size: 0.8rem;
 }
 
+/* === Preference Ranker === */
+.ranker-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.ranker-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text);
+  text-align: left;
+}
+
+.ranker-toggle-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+}
+
+.ranker-toggle-summary {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.ranker-toggle-arrow {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.ranker-body {
+  padding: 0 1rem 1rem;
+}
+
+.ranker-instructions {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.ranker-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ranker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: grab;
+}
+
+.ranker-item.dragging {
+  opacity: 0.5;
+  background: #ede9fe;
+  border-color: var(--primary);
+}
+
+.ranker-rank {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ranker-grip {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  letter-spacing: -3px;
+  cursor: grab;
+}
+
+.ranker-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ranker-loc {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ranker-moves {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* === Rank Column === */
+.col-rank {
+  white-space: nowrap;
+}
+
+.rank-num {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--primary);
+}
+
+.rank-control {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 0.2rem;
+  vertical-align: middle;
+}
+
+.rank-control .btn-icon {
+  font-size: 0.6rem;
+  padding: 0 0.2rem;
+  line-height: 1.1;
+}
+
+/* === Storage Note === */
+.storage-note {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   header h1 {

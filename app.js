@@ -1,33 +1,67 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "college_applications";
-  const PROFILE_KEY = "student_profile";
+  const STORAGE_KEY = "college_tracker_v2";
+  const PROFILE_KEY = "student_profile_v2";
 
-  // Admissions reference data keyed by lowercase college name
-  // avgGpa: average admitted GPA, satLow/satHigh: SAT middle-50%, acceptRate: %
+  // Admissions reference data keyed by lowercase college name.
+  // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%), acceptRate (%).
   const ADMISSIONS_DATA = {
-    "massachusetts institute of technology": { avgGpa: 3.96, satLow: 1510, satHigh: 1580, acceptRate: 4 },
-    "stanford university":                   { avgGpa: 3.96, satLow: 1500, satHigh: 1570, acceptRate: 4 },
-    "harvard university":                    { avgGpa: 3.97, satLow: 1490, satHigh: 1580, acceptRate: 3 },
-    "yale university":                       { avgGpa: 3.95, satLow: 1490, satHigh: 1560, acceptRate: 5 },
-    "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1570, acceptRate: 4 },
-    "university of chicago":                 { avgGpa: 3.95, satLow: 1500, satHigh: 1570, acceptRate: 5 },
-    "georgia institute of technology":       { avgGpa: 3.85, satLow: 1370, satHigh: 1530, acceptRate: 17 },
-    "university of michigan":                { avgGpa: 3.90, satLow: 1380, satHigh: 1540, acceptRate: 18 },
-    "university of california, berkeley":    { avgGpa: 3.89, satLow: 1390, satHigh: 1530, acceptRate: 12 },
-    "university of california, los angeles": { avgGpa: 3.90, satLow: 1360, satHigh: 1520, acceptRate: 9 },
-    "columbia university":                   { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 4 },
-    "duke university":                       { avgGpa: 3.94, satLow: 1490, satHigh: 1570, acceptRate: 6 },
-    "northwestern university":               { avgGpa: 3.93, satLow: 1480, satHigh: 1560, acceptRate: 7 },
-    "carnegie mellon university":            { avgGpa: 3.90, satLow: 1480, satHigh: 1560, acceptRate: 11 },
-    "university of virginia":                { avgGpa: 3.85, satLow: 1350, satHigh: 1510, acceptRate: 19 },
-    "rice university":                       { avgGpa: 3.94, satLow: 1490, satHigh: 1560, acceptRate: 8 },
-    "brown university":                      { avgGpa: 3.94, satLow: 1480, satHigh: 1560, acceptRate: 5 },
-    "university of wisconsin-madison":       { avgGpa: 3.80, satLow: 1300, satHigh: 1480, acceptRate: 49 },
-    "boston university":                      { avgGpa: 3.75, satLow: 1350, satHigh: 1510, acceptRate: 14 },
-    "university of southern california":     { avgGpa: 3.85, satLow: 1400, satHigh: 1530, acceptRate: 12 },
+    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5 },
+    "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7 },
+    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0 },
+    "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0 },
+    "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0 },
+    "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0 },
+    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0 },
+    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0 },
+    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0 },
+    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0 },
+    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0 },
+    "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0 },
+    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0 },
   };
+
+  // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
+  function buildSeed() {
+    const rows = [
+      { name: "Harvard University", location: "Cambridge, MA", deadline: "2027-01-01", fee: 85, notes: "Restrictive Early Action option closes Nov 1, 2026." },
+      { name: "Yale University", location: "New Haven, CT", deadline: "2027-01-02", fee: 80, notes: "Single-Choice Early Action closes Nov 1, 2026." },
+      { name: "Brown University", location: "Providence, RI", deadline: "2027-01-01", fee: 75, notes: "Open Curriculum. Early Decision closes Nov 1, 2026." },
+      { name: "University of California, Los Angeles", location: "Los Angeles, CA", deadline: "2026-12-02", fee: 80, notes: "UC application; no Early option. File Nov 1 - Dec 2, 2026." },
+      { name: "Swarthmore College", location: "Swarthmore, PA", deadline: "2027-01-05", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
+      { name: "Haverford College", location: "Haverford, PA", deadline: "2027-01-05", fee: 65, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
+      { name: "Colgate University", location: "Hamilton, NY", deadline: "2027-01-15", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 15, 2027." },
+      { name: "Bowdoin College", location: "Brunswick, ME", deadline: "2027-01-05", fee: 65, notes: "Test-optional. ED I Nov 15, 2026; ED II Jan 5, 2027." },
+      { name: "University of Vermont", location: "Burlington, VT", deadline: "2027-01-15", fee: 55, notes: "Early Action closes Nov 1, 2026; rolling review after." },
+      { name: "Dartmouth College", location: "Hanover, NH", deadline: "2027-01-02", fee: 80, notes: "Early Decision closes Nov 1, 2026." },
+      { name: "Barnard College", location: "New York, NY", deadline: "2027-01-01", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
+      { name: "New York University", location: "New York, NY", deadline: "2027-01-05", fee: 80, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+      { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    ];
+    return rows.map((r, i) => {
+      const ref = ADMISSIONS_DATA[r.name.toLowerCase()] || {};
+      return {
+        id: "seed" + String(i + 1).padStart(2, "0"),
+        addedAt: i + 1,
+        prefRank: i + 1,
+        name: r.name,
+        location: r.location,
+        type: "Regular Decision",
+        deadline: r.deadline,
+        status: "Researching",
+        decisionDate: "",
+        portal: "",
+        fee: r.fee,
+        notes: r.notes,
+        checklist: { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false },
+        avgGpa: ref.avgGpa ?? null,
+        satLow: ref.satLow ?? null,
+        satHigh: ref.satHigh ?? null,
+        acceptRate: ref.acceptRate ?? null,
+      };
+    });
+  }
 
   // --- Data ---
   function loadApplications() {
@@ -42,172 +76,9 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
   }
 
-  const DEFAULT_COLLEGES = [
-    {
-      id: "seed01", addedAt: 1,
-      name: "Massachusetts Institute of Technology", location: "Cambridge, MA",
-      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
-      decisionDate: "2026-03-14", portal: "", fee: 75,
-      notes: "Submitted supplemental essays on research experience",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed02", addedAt: 2,
-      name: "Stanford University", location: "Stanford, CA",
-      type: "Regular Decision", deadline: "2026-01-02", status: "Submitted",
-      decisionDate: "2026-04-01", portal: "", fee: 90,
-      notes: "Wrote about community impact for short essays",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed03", addedAt: 3,
-      name: "Harvard University", location: "Cambridge, MA",
-      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 85,
-      notes: "Optional interview completed in December",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed04", addedAt: 4,
-      name: "Yale University", location: "New Haven, CT",
-      type: "Regular Decision", deadline: "2026-01-02", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 80,
-      notes: "Highlighted interest in humanities program",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed05", addedAt: 5,
-      name: "Princeton University", location: "Princeton, NJ",
-      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 70,
-      notes: "Graded written paper submitted",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed06", addedAt: 6,
-      name: "University of Chicago", location: "Chicago, IL",
-      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
-      decisionDate: "2026-01-15", portal: "", fee: 75,
-      notes: "Accepted! Need to compare financial aid package",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed07", addedAt: 7,
-      name: "Georgia Institute of Technology", location: "Atlanta, GA",
-      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
-      decisionDate: "2026-01-20", portal: "", fee: 75,
-      notes: "Accepted into College of Engineering",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed08", addedAt: 8,
-      name: "University of Michigan", location: "Ann Arbor, MI",
-      type: "Early Action", deadline: "2025-11-01", status: "Deferred",
-      decisionDate: "", portal: "", fee: 75,
-      notes: "Deferred to regular decision pool. Sent LOCI in January",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed09", addedAt: 9,
-      name: "University of California, Berkeley", location: "Berkeley, CA",
-      type: "Regular Decision", deadline: "2025-11-30", status: "Submitted",
-      decisionDate: "2026-03-25", portal: "", fee: 80,
-      notes: "Applied to College of Letters & Science",
-      checklist: { essay: true, lor: false, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed10", addedAt: 10,
-      name: "University of California, Los Angeles", location: "Los Angeles, CA",
-      type: "Regular Decision", deadline: "2025-11-30", status: "Submitted",
-      decisionDate: "2026-03-20", portal: "", fee: 80,
-      notes: "Used same personal insight questions as Berkeley",
-      checklist: { essay: true, lor: false, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed11", addedAt: 11,
-      name: "Columbia University", location: "New York, NY",
-      type: "Regular Decision", deadline: "2026-01-01", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 85,
-      notes: "Focused on core curriculum appeal in essays",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed12", addedAt: 12,
-      name: "Duke University", location: "Durham, NC",
-      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 85,
-      notes: "Wrote optional \"Why Duke\" essay",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed13", addedAt: 13,
-      name: "Northwestern University", location: "Evanston, IL",
-      type: "Regular Decision", deadline: "2026-01-03", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 75,
-      notes: "Applied to Weinberg College of Arts & Sciences",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed14", addedAt: 14,
-      name: "Carnegie Mellon University", location: "Pittsburgh, PA",
-      type: "Regular Decision", deadline: "2026-01-03", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 75,
-      notes: "Applied to School of Computer Science",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed15", addedAt: 15,
-      name: "University of Virginia", location: "Charlottesville, VA",
-      type: "Early Action", deadline: "2025-11-01", status: "Accepted",
-      decisionDate: "2026-01-25", portal: "", fee: 70,
-      notes: "In-state safety school. Accepted into honors program!",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed16", addedAt: 16,
-      name: "Rice University", location: "Houston, TX",
-      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 75,
-      notes: "Mentioned residential college system in \"Why Rice\" essay",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed17", addedAt: 17,
-      name: "Brown University", location: "Providence, RI",
-      type: "Regular Decision", deadline: "2026-01-05", status: "Submitted",
-      decisionDate: "2026-03-28", portal: "", fee: 75,
-      notes: "Open curriculum was a big draw. Wrote about interdisciplinary interests",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: true },
-    },
-    {
-      id: "seed18", addedAt: 18,
-      name: "University of Wisconsin-Madison", location: "Madison, WI",
-      type: "Rolling", deadline: "2026-02-01", status: "Accepted",
-      decisionDate: "2026-02-15", portal: "", fee: 60,
-      notes: "Rolling admission, accepted quickly. Good backup option",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed19", addedAt: 19,
-      name: "Boston University", location: "Boston, MA",
-      type: "Regular Decision", deadline: "2026-01-04", status: "Submitted",
-      decisionDate: "2026-03-15", portal: "", fee: 80,
-      notes: "Applied to College of Engineering",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-    {
-      id: "seed20", addedAt: 20,
-      name: "University of Southern California", location: "Los Angeles, CA",
-      type: "Regular Decision", deadline: "2026-01-15", status: "Submitted",
-      decisionDate: "2026-04-01", portal: "", fee: 85,
-      notes: "Applied for merit scholarship consideration",
-      checklist: { essay: true, lor: true, transcript: true, scores: true, financial: true, interview: false },
-    },
-  ];
-
   let applications = loadApplications();
   if (applications.length === 0) {
-    applications = DEFAULT_COLLEGES;
+    applications = buildSeed();
     saveApplications(applications);
   }
   let editingId = null;
@@ -281,6 +152,37 @@
     return "status-" + status.toLowerCase().replace(/\s+/g, "-");
   }
 
+  // --- Preference ranking ---
+  // Renumber prefRank to a contiguous 1..N sequence, preserving current order.
+  function normalizePrefRanks() {
+    const ranked = [...applications].sort((a, b) => {
+      const ra = a.prefRank ?? Infinity;
+      const rb = b.prefRank ?? Infinity;
+      if (ra !== rb) return ra - rb;
+      return (a.addedAt || 0) - (b.addedAt || 0);
+    });
+    ranked.forEach((app, i) => {
+      app.prefRank = i + 1;
+    });
+  }
+
+  function nextPrefRank() {
+    return applications.reduce((max, a) => Math.max(max, a.prefRank || 0), 0) + 1;
+  }
+
+  function movePreference(id, delta) {
+    normalizePrefRanks();
+    const app = applications.find((a) => a.id === id);
+    if (!app) return;
+    const targetRank = app.prefRank + delta;
+    const other = applications.find((a) => a.prefRank === targetRank);
+    if (!other) return;
+    other.prefRank = app.prefRank;
+    app.prefRank = targetRank;
+    saveApplications(applications);
+    refresh();
+  }
+
   // --- Profile ---
   function loadProfile() {
     try {
@@ -297,12 +199,11 @@
   let profile = loadProfile();
 
   // --- Fit Scoring ---
-  // Returns { label, score, tooltip } or null if not enough data
+  // Returns { label, cls, score, tooltip } or null if not enough data
   function computeFit(app) {
     const p = profile;
     if (!p.gpa && !p.sat && !p.act) return null;
 
-    // Get stats: prefer per-college overrides, fall back to reference data
     const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
     const avgGpa = app.avgGpa ?? ref.avgGpa;
     const satLow = app.satLow ?? ref.satLow;
@@ -315,30 +216,24 @@
     let totalScore = 0;
     const tips = [];
 
-    // GPA component (0-100)
     if (p.gpa && avgGpa) {
       const diff = p.gpa - avgGpa;
-      // +0.2 above avg => 100, at avg => 60, -0.3 below => 0
       const gpaScore = Math.max(0, Math.min(100, 60 + diff * 200));
       totalScore += gpaScore * 35;
       totalWeight += 35;
       tips.push(`GPA: ${p.gpa} vs avg ${avgGpa}`);
     }
 
-    // SAT component (0-100)
     if (p.sat && satLow && satHigh) {
       const mid = (satLow + satHigh) / 2;
       const range = (satHigh - satLow) / 2 || 1;
-      // At mid => 60, at high => 85, above high by range => 100, at low => 35
       const satScore = Math.max(0, Math.min(100, 60 + ((p.sat - mid) / range) * 25));
       totalScore += satScore * 30;
       totalWeight += 30;
       tips.push(`SAT: ${p.sat} vs ${satLow}-${satHigh}`);
     }
 
-    // ACT component — convert to SAT-equivalent for scoring
     if (p.act && satLow && satHigh && !p.sat) {
-      // Rough ACT-to-SAT: SAT ~ (ACT - 1) * 34.3 + 420
       const satEquiv = Math.round((p.act - 1) * 34.3 + 420);
       const mid = (satLow + satHigh) / 2;
       const range = (satHigh - satLow) / 2 || 1;
@@ -348,18 +243,15 @@
       tips.push(`ACT: ${p.act} (~${satEquiv} SAT) vs ${satLow}-${satHigh}`);
     }
 
-    // Acceptance rate component (0-100) — lower accept rate = harder
     if (acceptRate != null) {
-      // 50%+ => 90, 20% => 55, 5% => 20
       const arScore = Math.max(0, Math.min(100, acceptRate * 1.6 + 10));
       totalScore += arScore * 25;
       totalWeight += 25;
       tips.push(`Accept: ${acceptRate}%`);
     }
 
-    // Extracurricular boost
     if (p.ecStrength && acceptRate != null && acceptRate < 20) {
-      const ecBoost = (p.ecStrength - 2) * 5; // -5 for low, 0 for avg, +5 strong, +10 exceptional
+      const ecBoost = (p.ecStrength - 2) * 5;
       totalScore += ecBoost * totalWeight / 100;
     }
 
@@ -399,7 +291,7 @@
     document.getElementById("stat-rejected").textContent = counts["Rejected"];
   }
 
-  // --- Render ---
+  // --- Render: table ---
   function getFilteredSorted() {
     const search = $searchInput.value.toLowerCase().trim();
     const filterStatus = $filterStatus.value;
@@ -413,6 +305,8 @@
 
     list.sort((a, b) => {
       switch (sortKey) {
+        case "preference":
+          return (a.prefRank || Infinity) - (b.prefRank || Infinity);
         case "deadline":
           if (!a.deadline && !b.deadline) return 0;
           if (!a.deadline) return 1;
@@ -441,6 +335,7 @@
   }
 
   function renderTable() {
+    normalizePrefRanks();
     const list = getFilteredSorted();
     $tbody.innerHTML = "";
 
@@ -453,6 +348,8 @@
 
     $emptyState.style.display = "none";
     document.getElementById("app-table").style.display = "table";
+
+    const total = applications.length;
 
     list.forEach((app) => {
       const tr = document.createElement("tr");
@@ -495,7 +392,17 @@
         fitHtml = `<span class="fit-badge ${fit.cls}" title="${escapeHtml(fit.tooltip)}">${escapeHtml(fit.label)}<span class="fit-score">${fit.score}</span></span>`;
       }
 
+      const upDisabled = app.prefRank <= 1 ? "disabled" : "";
+      const downDisabled = app.prefRank >= total ? "disabled" : "";
+
       tr.innerHTML = `
+        <td class="col-rank">
+          <span class="rank-num">#${app.prefRank}</span>
+          <span class="rank-control">
+            <button class="btn-icon rank-up" data-id="${app.id}" title="Higher preference" ${upDisabled}>&#9650;</button>
+            <button class="btn-icon rank-down" data-id="${app.id}" title="Lower preference" ${downDisabled}>&#9660;</button>
+          </span>
+        </td>
         <td class="col-name">
           <strong>${escapeHtml(app.name)}</strong>
           ${app.location ? '<span class="college-location">' + escapeHtml(app.location) + "</span>" : ""}
@@ -518,6 +425,109 @@
     updateStats();
   }
 
+  // --- Render: preference ranker ---
+  const $rankerList = document.getElementById("ranker-list");
+  const $rankerBody = document.getElementById("ranker-body");
+  const $rankerArrow = document.getElementById("ranker-arrow");
+  const $rankerSummary = document.getElementById("ranker-summary");
+
+  function renderRanker() {
+    normalizePrefRanks();
+    const ranked = [...applications].sort((a, b) => a.prefRank - b.prefRank);
+    $rankerList.innerHTML = "";
+
+    ranked.forEach((app, i) => {
+      const li = document.createElement("li");
+      li.className = "ranker-item";
+      li.draggable = true;
+      li.dataset.id = app.id;
+      li.innerHTML = `
+        <span class="ranker-rank">${app.prefRank}</span>
+        <span class="ranker-grip" aria-hidden="true">&#8942;&#8942;</span>
+        <span class="ranker-name">${escapeHtml(app.name)}<span class="ranker-loc">${escapeHtml(app.location || "")}</span></span>
+        <span class="ranker-moves">
+          <button class="btn-icon ranker-up" data-id="${app.id}" title="Move up" ${i === 0 ? "disabled" : ""}>&#9650;</button>
+          <button class="btn-icon ranker-down" data-id="${app.id}" title="Move down" ${i === ranked.length - 1 ? "disabled" : ""}>&#9660;</button>
+        </span>
+      `;
+      $rankerList.appendChild(li);
+    });
+
+    $rankerSummary.textContent = ranked.length
+      ? `Top choice: ${ranked[0].name}`
+      : "No colleges yet";
+  }
+
+  function refresh() {
+    renderTable();
+    renderRanker();
+  }
+
+  // --- Ranker drag & drop ---
+  function getDragAfterElement(container, y) {
+    const els = [...container.querySelectorAll(".ranker-item:not(.dragging)")];
+    return els.reduce(
+      (closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        }
+        return closest;
+      },
+      { offset: -Infinity, element: null }
+    ).element;
+  }
+
+  function commitRankerOrder() {
+    const ids = [...$rankerList.querySelectorAll(".ranker-item")].map((li) => li.dataset.id);
+    ids.forEach((id, i) => {
+      const app = applications.find((a) => a.id === id);
+      if (app) app.prefRank = i + 1;
+    });
+    saveApplications(applications);
+    refresh();
+  }
+
+  $rankerList.addEventListener("dragstart", (e) => {
+    const li = e.target.closest(".ranker-item");
+    if (li) li.classList.add("dragging");
+  });
+
+  $rankerList.addEventListener("dragend", (e) => {
+    const li = e.target.closest(".ranker-item");
+    if (li) li.classList.remove("dragging");
+    commitRankerOrder();
+  });
+
+  $rankerList.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const dragging = $rankerList.querySelector(".dragging");
+    if (!dragging) return;
+    const after = getDragAfterElement($rankerList, e.clientY);
+    if (after == null) {
+      $rankerList.appendChild(dragging);
+    } else {
+      $rankerList.insertBefore(dragging, after);
+    }
+  });
+
+  $rankerList.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-id]");
+    if (!btn) return;
+    if (btn.classList.contains("ranker-up")) {
+      movePreference(btn.dataset.id, -1);
+    } else if (btn.classList.contains("ranker-down")) {
+      movePreference(btn.dataset.id, 1);
+    }
+  });
+
+  document.getElementById("ranker-toggle").addEventListener("click", () => {
+    const hidden = $rankerBody.hidden;
+    $rankerBody.hidden = !hidden;
+    $rankerArrow.textContent = hidden ? "▲" : "▼";
+  });
+
   // --- Modal ---
   function openModal(app) {
     if (app) {
@@ -538,7 +548,6 @@
       fields.chkScores.checked = app.checklist?.scores || false;
       fields.chkFinancial.checked = app.checklist?.financial || false;
       fields.chkInterview.checked = app.checklist?.interview || false;
-      // Admissions stats — prefer stored values, fall back to reference
       const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
       fields.avgGpa.value = app.avgGpa ?? ref.avgGpa ?? "";
       fields.satLow.value = app.satLow ?? ref.satLow ?? "";
@@ -607,18 +616,21 @@
     } else {
       data.id = generateId();
       data.addedAt = Date.now();
+      data.prefRank = nextPrefRank();
       applications.push(data);
     }
 
+    normalizePrefRanks();
     saveApplications(applications);
-    renderTable();
+    refresh();
     closeModal();
   }
 
   function deleteApplication(id) {
     applications = applications.filter((a) => a.id !== id);
+    normalizePrefRanks();
     saveApplications(applications);
-    renderTable();
+    refresh();
     closeDeleteModal();
   }
 
@@ -684,9 +696,11 @@
     const emptyChecklist = { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false };
 
     entries.forEach((entry) => {
+      const ref = ADMISSIONS_DATA[entry.name.toLowerCase()] || {};
       applications.push({
         id: generateId(),
         addedAt: Date.now(),
+        prefRank: nextPrefRank(),
         name: entry.name,
         location: entry.location,
         type: defaultType,
@@ -697,22 +711,85 @@
         fee: null,
         notes: "",
         checklist: { ...emptyChecklist },
+        avgGpa: ref.avgGpa ?? null,
+        satLow: ref.satLow ?? null,
+        satHigh: ref.satHigh ?? null,
+        acceptRate: ref.acceptRate ?? null,
       });
     });
 
+    normalizePrefRanks();
     saveApplications(applications);
-    renderTable();
+    refresh();
     closeBulkModal();
   }
 
   $bulkTextarea.addEventListener("input", updateBulkPreview);
-
   document.getElementById("btn-bulk-add").addEventListener("click", openBulkModal);
   document.getElementById("bulk-modal-close").addEventListener("click", closeBulkModal);
   document.getElementById("bulk-cancel").addEventListener("click", closeBulkModal);
   document.getElementById("bulk-submit").addEventListener("click", submitBulk);
   $bulkOverlay.addEventListener("click", (e) => {
     if (e.target === $bulkOverlay) closeBulkModal();
+  });
+
+  // --- Export / Import ---
+  function exportData() {
+    const payload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      applications,
+      profile,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "college-tracker-backup.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch {
+        alert("Could not read that file — it is not valid JSON.");
+        return;
+      }
+      if (!parsed || !Array.isArray(parsed.applications)) {
+        alert("That file does not look like a College Tracker backup.");
+        return;
+      }
+      if (!confirm("Importing will replace your current colleges and ranking. Continue?")) {
+        return;
+      }
+      applications = parsed.applications;
+      if (parsed.profile && typeof parsed.profile === "object") {
+        profile = parsed.profile;
+        saveProfile(profile);
+        populateProfileFields();
+      }
+      normalizePrefRanks();
+      saveApplications(applications);
+      refresh();
+    };
+    reader.readAsText(file);
+  }
+
+  const $importFile = document.getElementById("import-file");
+  document.getElementById("btn-export").addEventListener("click", exportData);
+  document.getElementById("btn-import").addEventListener("click", () => $importFile.click());
+  $importFile.addEventListener("change", () => {
+    if ($importFile.files && $importFile.files[0]) {
+      importData($importFile.files[0]);
+    }
+    $importFile.value = "";
   });
 
   // --- Event Listeners ---
@@ -746,6 +823,10 @@
       if (app) openModal(app);
     } else if (btn.classList.contains("btn-delete")) {
       openDeleteModal(id);
+    } else if (btn.classList.contains("rank-up")) {
+      movePreference(id, -1);
+    } else if (btn.classList.contains("rank-down")) {
+      movePreference(id, 1);
     }
   });
 
@@ -793,7 +874,7 @@
   document.getElementById("profile-toggle").addEventListener("click", () => {
     const hidden = $profileBody.hidden;
     $profileBody.hidden = !hidden;
-    $profileArrow.textContent = hidden ? "\u25B2" : "\u25BC";
+    $profileArrow.textContent = hidden ? "▲" : "▼";
   });
 
   document.getElementById("profile-save").addEventListener("click", () => {
@@ -812,5 +893,5 @@
   populateProfileFields();
 
   // --- Init ---
-  renderTable();
+  refresh();
 })();

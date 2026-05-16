@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>College Application Tracker</title>
+  <title>College Application Tracker &mdash; 2027</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <h1>College Application Tracker</h1>
-    <p class="subtitle">Keep track of every application in one place</p>
+    <p class="subtitle">2026&ndash;27 application cycle &bull; entering Fall 2027</p>
   </header>
 
   <main>
@@ -86,10 +86,26 @@
       </div>
     </section>
 
+    <!-- Preference Ranker -->
+    <section class="ranker-panel" id="ranker-panel">
+      <button class="ranker-toggle" id="ranker-toggle">
+        <span class="ranker-toggle-label">Preference Ranker</span>
+        <span class="ranker-toggle-summary" id="ranker-summary"></span>
+        <span class="ranker-toggle-arrow" id="ranker-arrow">&#9660;</span>
+      </button>
+      <div class="ranker-body" id="ranker-body" hidden>
+        <p class="ranker-instructions">Drag colleges to order them by personal preference &mdash; <strong>#1 is your top choice</strong>. Use the arrows if you prefer not to drag. Your ranking is saved automatically.</p>
+        <ol class="ranker-list" id="ranker-list"></ol>
+      </div>
+    </section>
+
     <!-- Controls -->
     <section class="controls">
       <button class="btn btn-primary" id="btn-add">+ Add College</button>
       <button class="btn btn-secondary" id="btn-bulk-add">Bulk Add</button>
+      <button class="btn btn-secondary" id="btn-export">Export</button>
+      <button class="btn btn-secondary" id="btn-import">Import</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden />
       <div class="controls-right">
         <input type="text" id="search-input" placeholder="Search colleges..." />
         <select id="filter-status">
@@ -104,6 +120,7 @@
           <option value="Withdrawn">Withdrawn</option>
         </select>
         <select id="sort-by">
+          <option value="preference">Sort by Preference</option>
           <option value="deadline">Sort by Deadline</option>
           <option value="name">Sort by Name</option>
           <option value="status">Sort by Status</option>
@@ -118,6 +135,7 @@
       <table id="app-table">
         <thead>
           <tr>
+            <th>Rank</th>
             <th>College Name</th>
             <th>Fit</th>
             <th>Type</th>
@@ -135,6 +153,8 @@
         <p>No applications yet. Click <strong>+ Add College</strong> to get started!</p>
       </div>
     </section>
+
+    <p class="storage-note">Edits, rankings, and your profile are saved in this browser automatically. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it on another device.</p>
   </main>
 
   <!-- Add/Edit Modal -->
@@ -148,11 +168,11 @@
         <div class="form-row">
           <div class="form-group">
             <label for="college-name">College Name *</label>
-            <input type="text" id="college-name" required placeholder="e.g. MIT" />
+            <input type="text" id="college-name" required placeholder="e.g. Brown University" />
           </div>
           <div class="form-group">
             <label for="college-location">Location</label>
-            <input type="text" id="college-location" placeholder="e.g. Cambridge, MA" />
+            <input type="text" id="college-location" placeholder="e.g. Providence, RI" />
           </div>
         </div>
         <div class="form-row">
@@ -161,6 +181,7 @@
             <select id="app-type">
               <option value="Regular Decision">Regular Decision</option>
               <option value="Early Action">Early Action</option>
+              <option value="Restrictive Early Action">Restrictive Early Action</option>
               <option value="Early Decision">Early Decision</option>
               <option value="Early Decision II">Early Decision II</option>
               <option value="Rolling">Rolling</option>
@@ -265,11 +286,10 @@
         <h2>Bulk Add Colleges</h2>
         <button class="modal-close" id="bulk-modal-close">&times;</button>
       </div>
-      <p class="bulk-instructions">Enter one college per line. You can optionally add a location after a comma (e.g. <code>MIT, Cambridge MA</code>).</p>
+      <p class="bulk-instructions">Enter one college per line. You can optionally add a location after a comma (e.g. <code>Brown University, Providence RI</code>).</p>
       <textarea id="bulk-textarea" rows="10" placeholder="Harvard University, Cambridge MA
-Stanford University, Stanford CA
-MIT, Cambridge MA
-University of Michigan, Ann Arbor MI
+Yale University, New Haven CT
+Brown University, Providence RI
 ..."></textarea>
       <div class="form-row bulk-defaults">
         <div class="form-group">
@@ -277,6 +297,7 @@ University of Michigan, Ann Arbor MI
           <select id="bulk-type">
             <option value="Regular Decision">Regular Decision</option>
             <option value="Early Action">Early Action</option>
+            <option value="Restrictive Early Action">Restrictive Early Action</option>
             <option value="Early Decision">Early Decision</option>
             <option value="Early Decision II">Early Decision II</option>
             <option value="Rolling">Rolling</option>
