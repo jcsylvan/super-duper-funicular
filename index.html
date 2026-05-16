@@ -6,7 +6,19 @@
   <title>College Application Tracker &mdash; 2027</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="locked">
+  <!-- Password gate: shown until the correct password is entered. -->
+  <div class="auth-gate" id="auth-gate">
+    <form class="auth-box" id="auth-form" autocomplete="off">
+      <h1 class="auth-title">College Application Tracker</h1>
+      <p class="auth-prompt">This page is private. Enter the password to continue.</p>
+      <input type="password" id="auth-input" class="auth-input"
+             placeholder="Password" autocomplete="current-password" aria-label="Password" />
+      <button type="submit" class="btn btn-primary auth-submit">Unlock</button>
+      <p class="auth-error" id="auth-error" hidden>Incorrect password &mdash; try again.</p>
+    </form>
+  </div>
+
   <header>
     <h1>College Application Tracker</h1>
     <p class="subtitle">2026&ndash;27 application cycle &bull; entering Fall 2027</p>
@@ -320,6 +332,7 @@ Brown University, Providence RI
     </div>
   </div>
 
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
