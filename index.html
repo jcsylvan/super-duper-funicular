@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>College Application Tracker &mdash; 2027</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="locked">
+  <!-- Password gate: shown until the correct password is entered. -->
+  <div class="auth-gate" id="auth-gate">
+    <form class="auth-box" id="auth-form" autocomplete="off">
+      <h1 class="auth-title">College Application Tracker</h1>
+      <p class="auth-prompt">This page is private. Enter the password to continue.</p>
+      <input type="password" id="auth-input" class="auth-input"
+             placeholder="Password" autocomplete="current-password" aria-label="Password" />
+      <button type="submit" class="btn btn-primary auth-submit">Unlock</button>
+      <p class="auth-error" id="auth-error" hidden>Incorrect password &mdash; try again.</p>
+    </form>
+  </div>
+
+  <header>
+    <h1>College Application Tracker</h1>
+    <p class="subtitle">2026&ndash;27 application cycle &bull; entering Fall 2027</p>
+  </header>
+
+  <main>
+    <!-- Stats Dashboard -->
+    <section class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <span class="stat-number" id="stat-total">0</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat-card stat-researching">
+        <span class="stat-number" id="stat-researching">0</span>
+        <span class="stat-label">Researching</span>
+      </div>
+      <div class="stat-card stat-in-progress">
+        <span class="stat-number" id="stat-in-progress">0</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+      <div class="stat-card stat-submitted">
+        <span class="stat-number" id="stat-submitted">0</span>
+        <span class="stat-label">Submitted</span>
+      </div>
+      <div class="stat-card stat-accepted">
+        <span class="stat-number" id="stat-accepted">0</span>
+        <span class="stat-label">Accepted</span>
+      </div>
+      <div class="stat-card stat-rejected">
+        <span class="stat-number" id="stat-rejected">0</span>
+        <span class="stat-label">Rejected</span>
+      </div>
+    </section>
+
+    <!-- My Profile -->
+    <section class="profile-panel" id="profile-panel">
+      <button class="profile-toggle" id="profile-toggle">
+        <span class="profile-toggle-label">My Profile</span>
+        <span class="profile-toggle-summary" id="profile-summary"></span>
+        <span class="profile-toggle-arrow" id="profile-arrow">&#9660;</span>
+      </button>
+      <div class="profile-body" id="profile-body" hidden>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="profile-gpa">GPA (unweighted, 0&ndash;4.0)</label>
+            <input type="number" id="profile-gpa" min="0" max="4.0" step="0.01" placeholder="e.g. 3.85" />
+          </div>
+          <div class="form-group">
+            <label for="profile-sat">SAT Score (400&ndash;1600)</label>
+            <input type="number" id="profile-sat" min="400" max="1600" step="10" placeholder="e.g. 1450" />
+          </div>
+          <div class="form-group">
+            <label for="profile-act">ACT Score (1&ndash;36)</label>
+            <input type="number" id="profile-act" min="1" max="36" step="1" placeholder="e.g. 33" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="profile-aps">AP / IB / Honors Courses</label>
+            <input type="number" id="profile-aps" min="0" step="1" placeholder="e.g. 8" />
+          </div>
+          <div class="form-group">
+            <label for="profile-ec-strength">Extracurricular Strength</label>
+            <select id="profile-ec-strength">
+              <option value="">-- Select --</option>
+              <option value="1">Low</option>
+              <option value="2">Average</option>
+              <option value="3">Strong</option>
+              <option value="4">Exceptional</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" id="profile-save">Save Profile</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preference Ranker -->
+    <section class="ranker-panel" id="ranker-panel">
+      <button class="ranker-toggle" id="ranker-toggle">
+        <span class="ranker-toggle-label">Preference Ranker</span>
+        <span class="ranker-toggle-summary" id="ranker-summary"></span>
+        <span class="ranker-toggle-arrow" id="ranker-arrow">&#9660;</span>
+      </button>
+      <div class="ranker-body" id="ranker-body" hidden>
+        <p class="ranker-instructions">Drag colleges to order them by personal preference &mdash; <strong>#1 is your top choice</strong>. Use the arrows if you prefer not to drag. Your ranking is saved automatically.</p>
+        <ol class="ranker-list" id="ranker-list"></ol>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="controls">
+      <button class="btn btn-primary" id="btn-add">+ Add College</button>
+      <button class="btn btn-secondary" id="btn-bulk-add">Bulk Add</button>
+      <button class="btn btn-secondary" id="btn-export">Export</button>
+      <button class="btn btn-secondary" id="btn-import">Import</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden />
+      <div class="controls-right">
+        <input type="text" id="search-input" placeholder="Search colleges..." />
+        <select id="filter-status">
+          <option value="all">All Statuses</option>
+          <option value="Researching">Researching</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Waitlisted">Waitlisted</option>
+          <option value="Deferred">Deferred</option>
+          <option value="Withdrawn">Withdrawn</option>
+        </select>
+        <select id="sort-by">
+          <option value="preference">Sort by Preference</option>
+          <option value="deadline">Sort by Deadline</option>
+          <option value="name">Sort by Name</option>
+          <option value="status">Sort by Status</option>
+          <option value="added">Sort by Date Added</option>
+          <option value="fit">Sort by Fit</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Application Table -->
+    <section class="table-container">
+      <table id="app-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>College Name</th>
+            <th>Fit</th>
+            <th>Type</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Decision</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="app-tbody">
+        </tbody>
+      </table>
+      <div class="empty-state" id="empty-state">
+        <p>No applications yet. Click <strong>+ Add College</strong> to get started!</p>
+      </div>
+    </section>
+
+    <p class="storage-note">Edits, rankings, and your profile are saved in this browser automatically. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it on another device.</p>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Add College</h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <form id="app-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="college-name">College Name *</label>
+            <input type="text" id="college-name" required placeholder="e.g. Brown University" />
+          </div>
+          <div class="form-group">
+            <label for="college-location">Location</label>
+            <input type="text" id="college-location" placeholder="e.g. Providence, RI" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-type">Application Type</label>
+            <select id="app-type">
+              <option value="Regular Decision">Regular Decision</option>
+              <option value="Early Action">Early Action</option>
+              <option value="Restrictive Early Action">Restrictive Early Action</option>
+              <option value="Early Decision">Early Decision</option>
+              <option value="Early Decision II">Early Decision II</option>
+              <option value="Rolling">Rolling</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="app-deadline">Deadline</label>
+            <input type="date" id="app-deadline" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-status">Status</label>
+            <select id="app-status">
+              <option value="Researching">Researching</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Waitlisted">Waitlisted</option>
+              <option value="Deferred">Deferred</option>
+              <option value="Withdrawn">Withdrawn</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="decision-date">Decision Date</label>
+            <input type="date" id="decision-date" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="app-portal">Application Portal URL</label>
+            <input type="url" id="app-portal" placeholder="https://..." />
+          </div>
+          <div class="form-group">
+            <label for="app-fee">Application Fee ($)</label>
+            <input type="number" id="app-fee" min="0" step="1" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="college-avg-gpa">Avg Admitted GPA</label>
+            <input type="number" id="college-avg-gpa" min="0" max="4.0" step="0.01" placeholder="e.g. 3.9" />
+          </div>
+          <div class="form-group">
+            <label for="college-sat-mid">SAT Middle 50% (low&ndash;high)</label>
+            <div class="range-inputs">
+              <input type="number" id="college-sat-low" min="400" max="1600" step="10" placeholder="Low" />
+              <span class="range-sep">&ndash;</span>
+              <input type="number" id="college-sat-high" min="400" max="1600" step="10" placeholder="High" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="college-accept-rate">Acceptance Rate (%)</label>
+            <input type="number" id="college-accept-rate" min="0" max="100" step="0.1" placeholder="e.g. 5.5" />
+          </div>
+        </div>
+        <div class="form-row checklist-section">
+          <div class="form-group full-width">
+            <label>Checklist</label>
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" id="chk-essay" /> Essays</label>
+              <label class="check-item"><input type="checkbox" id="chk-lor" /> Letters of Rec</label>
+              <label class="check-item"><input type="checkbox" id="chk-transcript" /> Transcript</label>
+              <label class="check-item"><input type="checkbox" id="chk-scores" /> Test Scores</label>
+              <label class="check-item"><input type="checkbox" id="chk-financial" /> Financial Aid</label>
+              <label class="check-item"><input type="checkbox" id="chk-interview" /> Interview</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label for="app-notes">Notes</label>
+          <textarea id="app-notes" rows="3" placeholder="Any extra notes..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal-overlay">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="modal-close" id="delete-modal-close">&times;</button>
+      </div>
+      <p id="delete-msg">Are you sure you want to delete this application?</p>
+      <div class="form-actions">
+        <button class="btn btn-secondary" id="delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Add Modal -->
+  <div class="modal-overlay" id="bulk-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Bulk Add Colleges</h2>
+        <button class="modal-close" id="bulk-modal-close">&times;</button>
+      </div>
+      <p class="bulk-instructions">Enter one college per line. You can optionally add a location after a comma (e.g. <code>Brown University, Providence RI</code>).</p>
+      <textarea id="bulk-textarea" rows="10" placeholder="Harvard University, Cambridge MA
+Yale University, New Haven CT
+Brown University, Providence RI
+..."></textarea>
+      <div class="form-row bulk-defaults">
+        <div class="form-group">
+          <label for="bulk-type">Default Application Type</label>
+          <select id="bulk-type">
+            <option value="Regular Decision">Regular Decision</option>
+            <option value="Early Action">Early Action</option>
+            <option value="Restrictive Early Action">Restrictive Early Action</option>
+            <option value="Early Decision">Early Decision</option>
+            <option value="Early Decision II">Early Decision II</option>
+            <option value="Rolling">Rolling</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="bulk-status">Default Status</label>
+          <select id="bulk-status">
+            <option value="Researching">Researching</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Submitted">Submitted</option>
+          </select>
+        </div>
+      </div>
+      <div id="bulk-preview" class="bulk-preview" hidden></div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" id="bulk-cancel">Cancel</button>
+        <button class="btn btn-primary" id="bulk-submit">Add Colleges</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
