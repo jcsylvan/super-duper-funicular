@@ -53,6 +53,8 @@
         decisionDate: "",
         portal: "",
         fee: r.fee,
+        visitDate: "",
+        visitNotes: "",
         notes: r.notes,
         checklist: { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false },
         avgGpa: ref.avgGpa ?? null,
@@ -106,6 +108,8 @@
     decisionDate: document.getElementById("decision-date"),
     portal: document.getElementById("app-portal"),
     fee: document.getElementById("app-fee"),
+    visitDate: document.getElementById("app-visit-date"),
+    visitNotes: document.getElementById("app-visit-notes"),
     notes: document.getElementById("app-notes"),
     chkEssay: document.getElementById("chk-essay"),
     chkLor: document.getElementById("chk-lor"),
@@ -385,6 +389,15 @@
 
       const notesPreview = app.notes ? escapeHtml(app.notes.length > 40 ? app.notes.slice(0, 40) + "..." : app.notes) : "—";
 
+      // Campus visit badge
+      let visitHtml = "";
+      if (app.visitDate || app.visitNotes) {
+        const tipParts = [];
+        if (app.visitDate) tipParts.push("Visited " + formatDate(app.visitDate));
+        if (app.visitNotes) tipParts.push(app.visitNotes);
+        visitHtml = '<span class="visit-badge" title="' + escapeHtml(tipParts.join(" — ")) + '">&#9873; Visited</span>';
+      }
+
       // Fit badge
       const fit = computeFit(app);
       let fitHtml = '<span class="fit-badge fit-na" title="Set your profile to see fit">—</span>';
@@ -407,6 +420,7 @@
           <strong>${escapeHtml(app.name)}</strong>
           ${app.location ? '<span class="college-location">' + escapeHtml(app.location) + "</span>" : ""}
           ${app.portal ? '<a class="portal-link" href="' + escapeHtml(app.portal) + '" target="_blank" rel="noopener noreferrer">Portal</a>' : ""}
+          ${visitHtml}
         </td>
         <td class="col-fit">${fitHtml}</td>
         <td>${escapeHtml(app.type)}</td>
@@ -541,6 +555,8 @@
       fields.decisionDate.value = app.decisionDate || "";
       fields.portal.value = app.portal || "";
       fields.fee.value = app.fee || "";
+      fields.visitDate.value = app.visitDate || "";
+      fields.visitNotes.value = app.visitNotes || "";
       fields.notes.value = app.notes || "";
       fields.chkEssay.checked = app.checklist?.essay || false;
       fields.chkLor.checked = app.checklist?.lor || false;
@@ -591,6 +607,8 @@
       decisionDate: fields.decisionDate.value,
       portal: fields.portal.value.trim(),
       fee: fields.fee.value ? Number(fields.fee.value) : null,
+      visitDate: fields.visitDate.value,
+      visitNotes: fields.visitNotes.value.trim(),
       notes: fields.notes.value.trim(),
       checklist: {
         essay: fields.chkEssay.checked,
@@ -709,6 +727,8 @@
         decisionDate: "",
         portal: "",
         fee: null,
+        visitDate: "",
+        visitNotes: "",
         notes: "",
         checklist: { ...emptyChecklist },
         avgGpa: ref.avgGpa ?? null,

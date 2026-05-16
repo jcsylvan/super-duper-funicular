@@ -239,6 +239,18 @@ tbody tr:hover {
   text-decoration: underline;
 }
 
+.visit-badge {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #047857;
+  background: #d1fae5;
+  border-radius: 999px;
+  cursor: help;
+}
+
 .col-notes {
   max-width: 180px;
   overflow: hidden;
