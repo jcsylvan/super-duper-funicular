@@ -21,6 +21,12 @@
     "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3500 },
     "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0, enrollment: 29000 },
     "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2500 },
+    "cornell university":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1540, acceptRate: 7.5, enrollment: 15700 },
+    "syracuse university":                   { avgGpa: 3.70, satLow: 1180, satHigh: 1380, acceptRate: 42.0, enrollment: 15200 },
+    "hamilton college":                      { avgGpa: 3.90, satLow: 1410, satHigh: 1520, acceptRate: 12.0, enrollment: 2100 },
+    "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2200 },
+    "amherst college":                       { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 9.0, enrollment: 1950 },
+    "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3300 },
   };
 
   // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
@@ -704,8 +710,16 @@
     return $bulkTextarea.value
       .split("\n")
       .map((line) => line.trim())
+      // Strip surrounding quotes and trailing list punctuation (; : . ,).
+      .map((line) => line.replace(/^["'\s]+/, "").replace(/["'\s;:.,]+$/, ""))
       .filter((line) => line.length > 0)
       .map((line) => {
+        // "Name (Location)" form.
+        const paren = line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        if (paren) {
+          return { name: paren[1].trim(), location: paren[2].trim() };
+        }
+        // "Name, Location" form.
         const commaIdx = line.indexOf(",");
         if (commaIdx !== -1) {
           return {
