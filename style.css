@@ -251,6 +251,42 @@ tbody tr:hover {
   cursor: help;
 }
 
+.col-enrollment {
+  min-width: 110px;
+}
+
+.enroll-wrap {
+  cursor: help;
+}
+
+.enroll-num {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.enroll-bar {
+  display: block;
+  margin-top: 0.2rem;
+  height: 6px;
+  width: 100%;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.enroll-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  border-radius: 999px;
+}
+
+.enroll-na {
+  color: var(--text-muted);
+}
+
 .col-notes {
   max-width: 180px;
   overflow: hidden;

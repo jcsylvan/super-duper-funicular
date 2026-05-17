@@ -5,21 +5,22 @@
   const PROFILE_KEY = "student_profile_v2";
 
   // Admissions reference data keyed by lowercase college name.
-  // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%), acceptRate (%).
+  // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%),
+  // acceptRate (%), enrollment (approx. undergraduate headcount).
   const ADMISSIONS_DATA = {
-    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5 },
-    "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7 },
-    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0 },
-    "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0 },
-    "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0 },
-    "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0 },
-    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0 },
-    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0 },
-    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0 },
-    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0 },
-    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0 },
-    "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0 },
-    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0 },
+    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5, enrollment: 7300 },
+    "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7, enrollment: 6800 },
+    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0, enrollment: 7200 },
+    "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0, enrollment: 33000 },
+    "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0, enrollment: 1650 },
+    "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0, enrollment: 1400 },
+    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0, enrollment: 3200 },
+    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0, enrollment: 1900 },
+    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0, enrollment: 11800 },
+    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0, enrollment: 4600 },
+    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3500 },
+    "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0, enrollment: 29000 },
+    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2500 },
   };
 
   // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
@@ -61,6 +62,7 @@
         satLow: ref.satLow ?? null,
         satHigh: ref.satHigh ?? null,
         acceptRate: ref.acceptRate ?? null,
+        enrollment: ref.enrollment ?? null,
       };
     });
   }
@@ -121,6 +123,7 @@
     satLow: document.getElementById("college-sat-low"),
     satHigh: document.getElementById("college-sat-high"),
     acceptRate: document.getElementById("college-accept-rate"),
+    enrollment: document.getElementById("college-enrollment"),
   };
 
   // --- Helpers ---
@@ -136,6 +139,11 @@
       day: "numeric",
       year: "numeric",
     });
+  }
+
+  function formatNumber(n) {
+    if (n == null || n === "") return "—";
+    return Number(n).toLocaleString("en-US");
   }
 
   function daysUntil(dateStr) {
@@ -354,6 +362,7 @@
     document.getElementById("app-table").style.display = "table";
 
     const total = applications.length;
+    const maxEnroll = applications.reduce((m, a) => Math.max(m, a.enrollment || 0), 0);
 
     list.forEach((app) => {
       const tr = document.createElement("tr");
@@ -405,6 +414,17 @@
         fitHtml = `<span class="fit-badge ${fit.cls}" title="${escapeHtml(fit.tooltip)}">${escapeHtml(fit.label)}<span class="fit-score">${fit.score}</span></span>`;
       }
 
+      // Enrollment cell with a relative-size bar
+      let enrollHtml = '<span class="enroll-na">—</span>';
+      if (app.enrollment) {
+        const pct = maxEnroll ? Math.max(4, Math.round((app.enrollment / maxEnroll) * 100)) : 0;
+        enrollHtml =
+          '<div class="enroll-wrap" title="' + formatNumber(app.enrollment) + ' undergraduates">' +
+          '<span class="enroll-num">' + formatNumber(app.enrollment) + "</span>" +
+          '<span class="enroll-bar"><span class="enroll-fill" style="width:' + pct + '%"></span></span>' +
+          "</div>";
+      }
+
       const upDisabled = app.prefRank <= 1 ? "disabled" : "";
       const downDisabled = app.prefRank >= total ? "disabled" : "";
 
@@ -423,6 +443,7 @@
           ${visitHtml}
         </td>
         <td class="col-fit">${fitHtml}</td>
+        <td class="col-enrollment">${enrollHtml}</td>
         <td>${escapeHtml(app.type)}</td>
         <td>${deadlineHtml}</td>
         <td><span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span></td>
@@ -569,6 +590,7 @@
       fields.satLow.value = app.satLow ?? ref.satLow ?? "";
       fields.satHigh.value = app.satHigh ?? ref.satHigh ?? "";
       fields.acceptRate.value = app.acceptRate ?? ref.acceptRate ?? "";
+      fields.enrollment.value = app.enrollment ?? ref.enrollment ?? "";
     } else {
       editingId = null;
       $modalTitle.textContent = "Add College";
@@ -622,6 +644,7 @@
       satLow: fields.satLow.value ? Number(fields.satLow.value) : null,
       satHigh: fields.satHigh.value ? Number(fields.satHigh.value) : null,
       acceptRate: fields.acceptRate.value ? Number(fields.acceptRate.value) : null,
+      enrollment: fields.enrollment.value ? Number(fields.enrollment.value) : null,
     };
 
     if (!data.name) return;
@@ -735,6 +758,7 @@
         satLow: ref.satLow ?? null,
         satHigh: ref.satHigh ?? null,
         acceptRate: ref.acceptRate ?? null,
+        enrollment: ref.enrollment ?? null,
       });
     });
 
