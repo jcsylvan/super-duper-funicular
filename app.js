@@ -80,9 +80,27 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
   }
 
+  // Backfill enrollment for colleges saved before the field existed,
+  // using the reference data for any recognized school name.
+  function backfillEnrollment(apps) {
+    let changed = false;
+    apps.forEach((a) => {
+      if (a.enrollment == null) {
+        const ref = ADMISSIONS_DATA[a.name.toLowerCase()];
+        if (ref && ref.enrollment != null) {
+          a.enrollment = ref.enrollment;
+          changed = true;
+        }
+      }
+    });
+    return changed;
+  }
+
   let applications = loadApplications();
   if (applications.length === 0) {
     applications = buildSeed();
+    saveApplications(applications);
+  } else if (backfillEnrollment(applications)) {
     saveApplications(applications);
   }
   let editingId = null;
