@@ -27,7 +27,32 @@
     "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2150 },
     "amherst college":                       { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 9.0, enrollment: 1950 },
     "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3150 },
+    "northwestern university":               { avgGpa: 3.95, satLow: 1490, satHigh: 1560, acceptRate: 7.0, enrollment: 8800 },
+    "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 4.5, enrollment: 5600 },
+    "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800 },
+    "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000 },
   };
+
+  // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
+  // school still matches if it was saved without the full official name.
+  const NAME_ALIASES = {
+    "northwestern": "northwestern university",
+    "princeton": "princeton university",
+    "tufts": "tufts university",
+    "mcgill": "mcgill university",
+    "cornell": "cornell university",
+    "syracuse": "syracuse university",
+    "wesleyan": "wesleyan university",
+    "ucla": "university of california, los angeles",
+    "nyu": "new york university",
+    "uvm": "university of vermont",
+  };
+
+  function refFor(name) {
+    if (!name) return null;
+    const key = name.toLowerCase().trim();
+    return ADMISSIONS_DATA[key] || ADMISSIONS_DATA[NAME_ALIASES[key]] || null;
+  }
 
   // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
   function buildSeed() {
@@ -47,7 +72,7 @@
       { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
     ];
     return rows.map((r, i) => {
-      const ref = ADMISSIONS_DATA[r.name.toLowerCase()] || {};
+      const ref = refFor(r.name) || {};
       return {
         id: "seed" + String(i + 1).padStart(2, "0"),
         addedAt: i + 1,
@@ -90,11 +115,11 @@
   // figures to recognized schools in trackers saved earlier. Bump
   // ENROLL_SYNC_VERSION whenever the reference numbers are revised.
   const ENROLL_SYNC_KEY = "enrollment_sync_v";
-  const ENROLL_SYNC_VERSION = 2;
+  const ENROLL_SYNC_VERSION = 3;
 
   function syncEnrollment(apps) {
     apps.forEach((a) => {
-      const ref = ADMISSIONS_DATA[a.name.toLowerCase()];
+      const ref = refFor(a.name);
       if (ref && ref.enrollment != null) {
         a.enrollment = ref.enrollment;
       }
@@ -241,7 +266,7 @@
     const p = profile;
     if (!p.gpa && !p.sat && !p.act) return null;
 
-    const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
+    const ref = refFor(app.name) || {};
     const avgGpa = app.avgGpa ?? ref.avgGpa;
     const satLow = app.satLow ?? ref.satLow;
     const satHigh = app.satHigh ?? ref.satHigh;
@@ -610,7 +635,7 @@
       fields.chkScores.checked = app.checklist?.scores || false;
       fields.chkFinancial.checked = app.checklist?.financial || false;
       fields.chkInterview.checked = app.checklist?.interview || false;
-      const ref = ADMISSIONS_DATA[app.name.toLowerCase()] || {};
+      const ref = refFor(app.name) || {};
       fields.avgGpa.value = app.avgGpa ?? ref.avgGpa ?? "";
       fields.satLow.value = app.satLow ?? ref.satLow ?? "";
       fields.satHigh.value = app.satHigh ?? ref.satHigh ?? "";
@@ -770,7 +795,7 @@
     const emptyChecklist = { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false };
 
     entries.forEach((entry) => {
-      const ref = ADMISSIONS_DATA[entry.name.toLowerCase()] || {};
+      const ref = refFor(entry.name) || {};
       applications.push({
         id: generateId(),
         addedAt: Date.now(),
