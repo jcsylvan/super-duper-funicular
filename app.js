@@ -8,25 +8,25 @@
   // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%),
   // acceptRate (%), enrollment (approx. undergraduate headcount).
   const ADMISSIONS_DATA = {
-    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5, enrollment: 7300 },
+    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5, enrollment: 7100 },
     "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7, enrollment: 6800 },
-    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0, enrollment: 7200 },
+    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0, enrollment: 7600 },
     "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0, enrollment: 33000 },
     "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0, enrollment: 1650 },
     "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0, enrollment: 1400 },
-    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0, enrollment: 3200 },
-    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0, enrollment: 1900 },
-    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0, enrollment: 11800 },
-    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0, enrollment: 4600 },
-    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3500 },
+    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0, enrollment: 3150 },
+    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0, enrollment: 1950 },
+    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0, enrollment: 11700 },
+    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0, enrollment: 4500 },
+    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3400 },
     "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0, enrollment: 29000 },
-    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2500 },
-    "cornell university":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1540, acceptRate: 7.5, enrollment: 15700 },
-    "syracuse university":                   { avgGpa: 3.70, satLow: 1180, satHigh: 1380, acceptRate: 42.0, enrollment: 15200 },
-    "hamilton college":                      { avgGpa: 3.90, satLow: 1410, satHigh: 1520, acceptRate: 12.0, enrollment: 2100 },
-    "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2200 },
+    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2400 },
+    "cornell university":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1540, acceptRate: 7.5, enrollment: 16100 },
+    "syracuse university":                   { avgGpa: 3.70, satLow: 1180, satHigh: 1380, acceptRate: 42.0, enrollment: 15300 },
+    "hamilton college":                      { avgGpa: 3.90, satLow: 1410, satHigh: 1520, acceptRate: 12.0, enrollment: 2050 },
+    "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2150 },
     "amherst college":                       { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 9.0, enrollment: 1950 },
-    "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3300 },
+    "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3150 },
   };
 
   // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
@@ -86,29 +86,30 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
   }
 
-  // Backfill enrollment for colleges saved before the field existed,
-  // using the reference data for any recognized school name.
-  function backfillEnrollment(apps) {
-    let changed = false;
+  // One-time enrollment sync: applies the current reference enrollment
+  // figures to recognized schools in trackers saved earlier. Bump
+  // ENROLL_SYNC_VERSION whenever the reference numbers are revised.
+  const ENROLL_SYNC_KEY = "enrollment_sync_v";
+  const ENROLL_SYNC_VERSION = 2;
+
+  function syncEnrollment(apps) {
     apps.forEach((a) => {
-      if (a.enrollment == null) {
-        const ref = ADMISSIONS_DATA[a.name.toLowerCase()];
-        if (ref && ref.enrollment != null) {
-          a.enrollment = ref.enrollment;
-          changed = true;
-        }
+      const ref = ADMISSIONS_DATA[a.name.toLowerCase()];
+      if (ref && ref.enrollment != null) {
+        a.enrollment = ref.enrollment;
       }
     });
-    return changed;
   }
 
   let applications = loadApplications();
   if (applications.length === 0) {
     applications = buildSeed();
     saveApplications(applications);
-  } else if (backfillEnrollment(applications)) {
+  } else if (Number(localStorage.getItem(ENROLL_SYNC_KEY) || 0) < ENROLL_SYNC_VERSION) {
+    syncEnrollment(applications);
     saveApplications(applications);
   }
+  localStorage.setItem(ENROLL_SYNC_KEY, String(ENROLL_SYNC_VERSION));
   let editingId = null;
   let deletingId = null;
 
