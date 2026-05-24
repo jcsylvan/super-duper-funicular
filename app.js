@@ -6,31 +6,33 @@
 
   // Admissions reference data keyed by lowercase college name.
   // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%),
-  // acceptRate (%), enrollment (approx. undergraduate headcount).
+  // acceptRate (%), enrollment (approx. undergraduate headcount). The psych
+  // and english flags mark a strong departmental reputation in those fields
+  // per commonly cited public rankings (e.g. U.S. News).
   const ADMISSIONS_DATA = {
-    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5, enrollment: 7100 },
-    "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7, enrollment: 6800 },
-    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0, enrollment: 7600 },
-    "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0, enrollment: 33000 },
-    "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0, enrollment: 1650 },
-    "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0, enrollment: 1400 },
-    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0, enrollment: 3150 },
-    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0, enrollment: 1950 },
-    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0, enrollment: 11700 },
-    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0, enrollment: 4500 },
-    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3400 },
-    "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0, enrollment: 29000 },
-    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2400 },
-    "cornell university":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1540, acceptRate: 7.5, enrollment: 16100 },
-    "syracuse university":                   { avgGpa: 3.70, satLow: 1180, satHigh: 1380, acceptRate: 42.0, enrollment: 15300 },
-    "hamilton college":                      { avgGpa: 3.90, satLow: 1410, satHigh: 1520, acceptRate: 12.0, enrollment: 2050 },
-    "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2150 },
-    "amherst college":                       { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 9.0, enrollment: 1950 },
-    "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3150 },
-    "northwestern university":               { avgGpa: 3.95, satLow: 1490, satHigh: 1560, acceptRate: 7.0, enrollment: 8800 },
-    "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 4.5, enrollment: 5600 },
-    "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800 },
-    "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000 },
+    "harvard university":                    { avgGpa: 3.97, satLow: 1500, satHigh: 1580, acceptRate: 3.5, enrollment: 7100, psych: true, english: true },
+    "yale university":                       { avgGpa: 3.95, satLow: 1500, satHigh: 1560, acceptRate: 3.7, enrollment: 6800, psych: true, english: true },
+    "brown university":                      { avgGpa: 3.94, satLow: 1500, satHigh: 1560, acceptRate: 5.0, enrollment: 7600, psych: true, english: true },
+    "university of california, los angeles": { avgGpa: 3.92, satLow: 1350, satHigh: 1530, acceptRate: 9.0, enrollment: 33000, psych: true, english: true },
+    "swarthmore college":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 7.0, enrollment: 1650, psych: true, english: true },
+    "haverford college":                     { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 14.0, enrollment: 1400, psych: false, english: false },
+    "colgate university":                    { avgGpa: 3.80, satLow: 1380, satHigh: 1520, acceptRate: 12.0, enrollment: 3150, psych: false, english: false },
+    "bowdoin college":                       { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 9.0, enrollment: 1950, psych: false, english: true },
+    "university of vermont":                 { avgGpa: 3.60, satLow: 1230, satHigh: 1410, acceptRate: 62.0, enrollment: 11700, psych: false, english: false },
+    "dartmouth college":                     { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 6.0, enrollment: 4500, psych: false, english: true },
+    "barnard college":                       { avgGpa: 3.90, satLow: 1410, satHigh: 1530, acceptRate: 8.0, enrollment: 3400, psych: true, english: true },
+    "new york university":                   { avgGpa: 3.70, satLow: 1450, satHigh: 1570, acceptRate: 9.0, enrollment: 29000, psych: true, english: true },
+    "wellesley college":                     { avgGpa: 3.90, satLow: 1430, satHigh: 1550, acceptRate: 14.0, enrollment: 2400, psych: true, english: true },
+    "cornell university":                    { avgGpa: 3.90, satLow: 1450, satHigh: 1540, acceptRate: 7.5, enrollment: 16100, psych: true, english: true },
+    "syracuse university":                   { avgGpa: 3.70, satLow: 1180, satHigh: 1380, acceptRate: 42.0, enrollment: 15300, psych: false, english: true },
+    "hamilton college":                      { avgGpa: 3.90, satLow: 1410, satHigh: 1520, acceptRate: 12.0, enrollment: 2050, psych: false, english: true },
+    "williams college":                      { avgGpa: 3.90, satLow: 1490, satHigh: 1560, acceptRate: 9.0, enrollment: 2150, psych: true, english: true },
+    "amherst college":                       { avgGpa: 3.90, satLow: 1450, satHigh: 1550, acceptRate: 9.0, enrollment: 1950, psych: true, english: true },
+    "wesleyan university":                   { avgGpa: 3.90, satLow: 1380, satHigh: 1520, acceptRate: 14.0, enrollment: 3150, psych: true, english: true },
+    "northwestern university":               { avgGpa: 3.95, satLow: 1490, satHigh: 1560, acceptRate: 7.0, enrollment: 8800, psych: true, english: true },
+    "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 4.5, enrollment: 5600, psych: true, english: true },
+    "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800, psych: true, english: false },
+    "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000, psych: true, english: true },
   };
 
   // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
@@ -475,6 +477,22 @@
           "</div>";
       }
 
+      // Standout academic programs (from public reputational rankings)
+      const prog = refFor(app.name) || {};
+      let progHtml = '<span class="prog-na">—</span>';
+      if (prog.psych || prog.english) {
+        const badges =
+          (prog.psych ? '<span class="prog-badge prog-psych">Psych</span>' : "") +
+          (prog.english ? '<span class="prog-badge prog-english">English</span>' : "");
+        const flds = [];
+        if (prog.psych) flds.push("Psychology");
+        if (prog.english) flds.push("English");
+        const note = "Strong reputation in " + flds.join(" & ") + ".";
+        progHtml =
+          '<div class="prog-wrap">' + badges +
+          '<span class="prog-note">' + escapeHtml(note) + "</span></div>";
+      }
+
       const upDisabled = app.prefRank <= 1 ? "disabled" : "";
       const downDisabled = app.prefRank >= total ? "disabled" : "";
 
@@ -494,6 +512,7 @@
         </td>
         <td class="col-fit">${fitHtml}</td>
         <td class="col-enrollment">${enrollHtml}</td>
+        <td class="col-programs">${progHtml}</td>
         <td>${escapeHtml(app.type)}</td>
         <td>${deadlineHtml}</td>
         <td><span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span></td>
