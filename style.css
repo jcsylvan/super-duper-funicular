@@ -271,6 +271,32 @@ tbody tr:hover {
   cursor: help;
 }
 
+.tp-badge {
+  display: inline-block;
+  margin-top: 0.2rem;
+  margin-right: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: help;
+}
+
+.tp-optional {
+  color: #7a5a17;
+  background: #f6e7c1;
+}
+
+.tp-required {
+  color: #8a3326;
+  background: #f4d7d0;
+}
+
+.tp-blind {
+  color: #4a3d6f;
+  background: #e7e1f4;
+}
+
 .col-enrollment {
   min-width: 110px;
 }
