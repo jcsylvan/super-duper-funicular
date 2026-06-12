@@ -3,6 +3,10 @@
 
   const STORAGE_KEY = "college_tracker_v2";
   const PROFILE_KEY = "student_profile_v2";
+  const SYNC_TOKEN_KEY = "sync_token";
+  const SYNC_GIST_KEY = "sync_gist_id";
+  const SYNC_LOCAL_TS_KEY = "sync_local_ts";
+  const SYNC_FILENAME = "college-tracker.json";
 
   // Admissions reference data keyed by lowercase college name.
   // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%),
@@ -113,6 +117,8 @@
 
   function saveApplications(apps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+    localStorage.setItem(SYNC_LOCAL_TS_KEY, String(Date.now()));
+    schedulePush();
   }
 
   // One-time enrollment sync: applies the current reference enrollment
@@ -260,6 +266,8 @@
 
   function saveProfile(p) {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    localStorage.setItem(SYNC_LOCAL_TS_KEY, String(Date.now()));
+    schedulePush();
   }
 
   let profile = loadProfile();
@@ -974,6 +982,7 @@
       closeModal();
       closeDeleteModal();
       closeBulkModal();
+      closeSyncModal();
     }
   });
 
@@ -1027,6 +1036,204 @@
 
   populateProfileFields();
 
+  // --- Cross-device sync via GitHub Gist ---
+  let syncDebounce = null;
+  let syncInitDone = false;
+
+  function getSyncConfig() {
+    const token = localStorage.getItem(SYNC_TOKEN_KEY);
+    const gistId = localStorage.getItem(SYNC_GIST_KEY);
+    if (!token || !gistId) return null;
+    return { token, gistId };
+  }
+
+  function setSyncStatus(state, detail) {
+    const el = document.getElementById("sync-status");
+    if (!el) return;
+    let html = "";
+    if (state === "disconnected") {
+      html = 'Not synced across devices. <a href="#" class="sync-link">Set up cross-device sync.</a>';
+    } else if (state === "syncing") {
+      html = 'Syncing…';
+    } else if (state === "ok") {
+      html = 'Synced to your private gist. <a href="#" class="sync-link">Sync settings</a>';
+    } else if (state === "error") {
+      html = 'Sync error: ' + escapeHtml(detail || "unknown") + '. <a href="#" class="sync-link">Sync settings</a>';
+    }
+    el.innerHTML = html;
+    const link = el.querySelector(".sync-link");
+    if (link) link.addEventListener("click", (e) => { e.preventDefault(); openSyncModal(); });
+  }
+
+  function currentPayload() {
+    return {
+      version: 3,
+      lastModified: Date.now(),
+      applications,
+      profile,
+    };
+  }
+
+  async function fetchRemote(token, gistId) {
+    const r = await fetch("https://api.github.com/gists/" + encodeURIComponent(gistId), {
+      headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json" },
+    });
+    if (r.status === 404) throw new Error("Gist not found (check the ID).");
+    if (r.status === 401 || r.status === 403) throw new Error("Token rejected (check scope and value).");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    const file = data.files && data.files[SYNC_FILENAME];
+    if (!file || !file.content) return null;
+    try {
+      return JSON.parse(file.content);
+    } catch {
+      return null;
+    }
+  }
+
+  async function pushRemote(token, gistId, payload) {
+    const body = { files: {} };
+    body.files[SYNC_FILENAME] = { content: JSON.stringify(payload, null, 2) };
+    const r = await fetch("https://api.github.com/gists/" + encodeURIComponent(gistId), {
+      method: "PATCH",
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 404) throw new Error("Gist not found (check the ID).");
+    if (r.status === 401 || r.status === 403) throw new Error("Token rejected (check scope and value).");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+  }
+
+  function schedulePush() {
+    if (!syncInitDone) return;
+    const cfg = getSyncConfig();
+    if (!cfg) return;
+    if (syncDebounce) clearTimeout(syncDebounce);
+    syncDebounce = setTimeout(async () => {
+      syncDebounce = null;
+      setSyncStatus("syncing");
+      try {
+        await pushRemote(cfg.token, cfg.gistId, currentPayload());
+        setSyncStatus("ok");
+      } catch (e) {
+        setSyncStatus("error", e.message);
+      }
+    }, 1500);
+  }
+
+  async function initSync() {
+    const cfg = getSyncConfig();
+    if (!cfg) {
+      setSyncStatus("disconnected");
+      syncInitDone = true;
+      return;
+    }
+    setSyncStatus("syncing");
+    try {
+      const remote = await fetchRemote(cfg.token, cfg.gistId);
+      const localTs = Number(localStorage.getItem(SYNC_LOCAL_TS_KEY) || 0);
+      const remoteTs = remote ? Number(remote.lastModified || 0) : 0;
+      if (remote && remoteTs > localTs) {
+        applications = Array.isArray(remote.applications) ? remote.applications : [];
+        profile = (remote.profile && typeof remote.profile === "object") ? remote.profile : {};
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        localStorage.setItem(SYNC_LOCAL_TS_KEY, String(remoteTs));
+        populateProfileFields();
+        refresh();
+      } else if (!remote || localTs > remoteTs) {
+        await pushRemote(cfg.token, cfg.gistId, currentPayload());
+      }
+      setSyncStatus("ok");
+    } catch (e) {
+      setSyncStatus("error", e.message);
+    }
+    syncInitDone = true;
+  }
+
+  // --- Sync Settings Modal ---
+  const $syncOverlay = document.getElementById("sync-modal-overlay");
+  const $syncToken = document.getElementById("sync-token");
+  const $syncGist = document.getElementById("sync-gist");
+  const $syncModalStatus = document.getElementById("sync-modal-status");
+  const $syncDisconnect = document.getElementById("sync-disconnect");
+
+  function openSyncModal() {
+    const cfg = getSyncConfig();
+    $syncToken.value = cfg ? cfg.token : "";
+    $syncGist.value = cfg ? cfg.gistId : "";
+    $syncModalStatus.hidden = true;
+    $syncModalStatus.textContent = "";
+    $syncDisconnect.hidden = !cfg;
+    $syncOverlay.classList.add("active");
+    setTimeout(() => $syncToken.focus(), 50);
+  }
+
+  function closeSyncModal() {
+    $syncOverlay.classList.remove("active");
+  }
+
+  function showModalStatus(text, isError) {
+    $syncModalStatus.hidden = false;
+    $syncModalStatus.textContent = text;
+    $syncModalStatus.classList.toggle("is-error", !!isError);
+  }
+
+  async function connectSync() {
+    const token = $syncToken.value.trim();
+    const gistId = $syncGist.value.trim();
+    if (!token || !gistId) {
+      showModalStatus("Please paste both a token and a gist ID.", true);
+      return;
+    }
+    showModalStatus("Connecting…", false);
+    try {
+      const remote = await fetchRemote(token, gistId);
+      localStorage.setItem(SYNC_TOKEN_KEY, token);
+      localStorage.setItem(SYNC_GIST_KEY, gistId);
+      const localTs = Number(localStorage.getItem(SYNC_LOCAL_TS_KEY) || 0);
+      const remoteTs = remote ? Number(remote.lastModified || 0) : 0;
+      if (remote && remoteTs > localTs) {
+        applications = Array.isArray(remote.applications) ? remote.applications : [];
+        profile = (remote.profile && typeof remote.profile === "object") ? remote.profile : {};
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        localStorage.setItem(SYNC_LOCAL_TS_KEY, String(remoteTs));
+        populateProfileFields();
+        refresh();
+      } else {
+        await pushRemote(token, gistId, currentPayload());
+      }
+      setSyncStatus("ok");
+      showModalStatus("Connected.", false);
+      setTimeout(closeSyncModal, 800);
+    } catch (e) {
+      showModalStatus(e.message, true);
+    }
+  }
+
+  function disconnectSync() {
+    if (!confirm("Stop syncing this device with your gist? Local data stays here.")) return;
+    localStorage.removeItem(SYNC_TOKEN_KEY);
+    localStorage.removeItem(SYNC_GIST_KEY);
+    setSyncStatus("disconnected");
+    closeSyncModal();
+  }
+
+  document.getElementById("btn-sync").addEventListener("click", openSyncModal);
+  document.getElementById("sync-modal-close").addEventListener("click", closeSyncModal);
+  document.getElementById("sync-cancel").addEventListener("click", closeSyncModal);
+  document.getElementById("sync-connect").addEventListener("click", connectSync);
+  $syncDisconnect.addEventListener("click", disconnectSync);
+  $syncOverlay.addEventListener("click", (e) => {
+    if (e.target === $syncOverlay) closeSyncModal();
+  });
+
   // --- Init ---
   refresh();
+  initSync();
 })();

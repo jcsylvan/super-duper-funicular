@@ -297,6 +297,49 @@ tbody tr:hover {
   background: #e7e1f4;
 }
 
+.sync-status {
+  display: inline;
+  margin-left: 0.35rem;
+}
+
+.sync-link {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.sync-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sync-hint code {
+  background: var(--surface-alt);
+  padding: 0 0.25rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+
+.sync-help {
+  margin: 0.5rem 0 1rem;
+  color: var(--text-muted);
+}
+
+.sync-modal-status {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.sync-modal-status.is-error {
+  background: #f4d7d0;
+  color: #8a3326;
+}
+
 .col-enrollment {
   min-width: 110px;
 }
