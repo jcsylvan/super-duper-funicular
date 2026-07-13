@@ -40,6 +40,8 @@
     "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800, psych: true, english: false, testPolicy: "optional" },
     "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000, psych: true, english: true, testPolicy: "optional" },
     "boston college":                        { avgGpa: 3.75, satLow: 1420, satHigh: 1520, acceptRate: 15.0, enrollment: 9500, psych: true, english: true, testPolicy: "optional" },
+    "duke university":                        { avgGpa: 3.94, satLow: 1500, satHigh: 1570, acceptRate: 5.5, enrollment: 6700, psych: true, english: true, testPolicy: "optional" },
+    "university of north carolina at chapel hill": { avgGpa: 3.85, satLow: 1330, satHigh: 1500, acceptRate: 19.0, enrollment: 20200, psych: true, english: true, testPolicy: "required" },
   };
 
   // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
@@ -55,6 +57,11 @@
     "ucla": "university of california, los angeles",
     "nyu": "new york university",
     "uvm": "university of vermont",
+    "duke": "duke university",
+    "unc": "university of north carolina at chapel hill",
+    "unc chapel hill": "university of north carolina at chapel hill",
+    "unc-chapel hill": "university of north carolina at chapel hill",
+    "university of north carolina": "university of north carolina at chapel hill",
   };
 
   function refFor(name) {
@@ -65,23 +72,7 @@
 
   // --- Seed data: 2026-27 cycle (entering Fall 2027) ---
   function buildSeed() {
-    const rows = [
-      { name: "Harvard University", location: "Cambridge, MA", deadline: "2027-01-01", fee: 85, notes: "Restrictive Early Action option closes Nov 1, 2026." },
-      { name: "Yale University", location: "New Haven, CT", deadline: "2027-01-02", fee: 80, notes: "Single-Choice Early Action closes Nov 1, 2026." },
-      { name: "Brown University", location: "Providence, RI", deadline: "2027-01-01", fee: 75, notes: "Open Curriculum. Early Decision closes Nov 1, 2026." },
-      { name: "University of California, Los Angeles", location: "Los Angeles, CA", deadline: "2026-12-02", fee: 80, notes: "UC application; no Early option. File Nov 1 - Dec 2, 2026." },
-      { name: "Swarthmore College", location: "Swarthmore, PA", deadline: "2027-01-05", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
-      { name: "Haverford College", location: "Haverford, PA", deadline: "2027-01-05", fee: 65, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
-      { name: "Colgate University", location: "Hamilton, NY", deadline: "2027-01-15", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 15, 2027." },
-      { name: "Bowdoin College", location: "Brunswick, ME", deadline: "2027-01-05", fee: 65, notes: "Test-optional. ED I Nov 15, 2026; ED II Jan 5, 2027." },
-      { name: "University of Vermont", location: "Burlington, VT", deadline: "2027-01-15", fee: 55, notes: "Early Action closes Nov 1, 2026; rolling review after." },
-      { name: "Dartmouth College", location: "Hanover, NH", deadline: "2027-01-02", fee: 80, notes: "Early Decision closes Nov 1, 2026." },
-      { name: "Barnard College", location: "New York, NY", deadline: "2027-01-01", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
-      { name: "New York University", location: "New York, NY", deadline: "2027-01-05", fee: 80, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
-      { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
-      { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
-    ];
-    return rows.map((r, i) => {
+    return SEED_ROWS.map((r, i) => {
       const ref = refFor(r.name) || {};
       return {
         id: "seed" + String(i + 1).padStart(2, "0"),
@@ -133,17 +124,69 @@
   // a user's tracker was first populated. Bump SEED_ADD_VERSION and add
   // rows below to push more schools into existing trackers automatically.
   const SEED_ADD_KEY = "seed_added_v";
-  const SEED_ADD_VERSION = 1;
+  const SEED_ADD_VERSION = 4;
+
+  // Single source of truth for the seed. Every school in ADMISSIONS_DATA
+  // has a matching row here so buildSeed produces a complete tracker and
+  // the migration can fill any blank fields on an existing entry.
+  const SEED_ROWS = [
+    { name: "Harvard University", location: "Cambridge, MA", deadline: "2027-01-01", fee: 85, notes: "Restrictive Early Action option closes Nov 1, 2026." },
+    { name: "Yale University", location: "New Haven, CT", deadline: "2027-01-02", fee: 80, notes: "Single-Choice Early Action closes Nov 1, 2026." },
+    { name: "Brown University", location: "Providence, RI", deadline: "2027-01-01", fee: 75, notes: "Open Curriculum. Early Decision closes Nov 1, 2026." },
+    { name: "University of California, Los Angeles", location: "Los Angeles, CA", deadline: "2026-12-02", fee: 80, notes: "UC application; no Early option. File Nov 1 - Dec 2, 2026." },
+    { name: "Swarthmore College", location: "Swarthmore, PA", deadline: "2027-01-05", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
+    { name: "Haverford College", location: "Haverford, PA", deadline: "2027-01-05", fee: 65, notes: "ED I closes Nov 15, 2026; ED II Jan 5, 2027." },
+    { name: "Colgate University", location: "Hamilton, NY", deadline: "2027-01-15", fee: 60, notes: "ED I closes Nov 15, 2026; ED II Jan 15, 2027." },
+    { name: "Bowdoin College", location: "Brunswick, ME", deadline: "2027-01-05", fee: 65, notes: "Test-optional. ED I Nov 15, 2026; ED II Jan 5, 2027." },
+    { name: "University of Vermont", location: "Burlington, VT", deadline: "2027-01-15", fee: 55, notes: "Early Action closes Nov 1, 2026; rolling review after." },
+    { name: "Dartmouth College", location: "Hanover, NH", deadline: "2027-01-02", fee: 80, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "Barnard College", location: "New York, NY", deadline: "2027-01-01", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "New York University", location: "New York, NY", deadline: "2027-01-05", fee: 80, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    { name: "Tufts University", location: "Medford, MA", deadline: "2027-01-04", fee: 85, notes: "ED I closes Nov 1, 2026; ED II Jan 4, 2027." },
+    { name: "Duke University", location: "Durham, NC", deadline: "2027-01-03", fee: 85, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "University of North Carolina at Chapel Hill", location: "Chapel Hill, NC", deadline: "2027-01-15", fee: 85, notes: "Early Action closes Oct 15, 2026. Out-of-state admits are much more competitive than in-state." },
+    { name: "Cornell University", location: "Ithaca, NY", deadline: "2027-01-02", fee: 80, notes: "You apply to a specific undergraduate college within Cornell. Early Decision closes Nov 1, 2026." },
+    { name: "Syracuse University", location: "Syracuse, NY", deadline: "2027-01-01", fee: 85, notes: "Rolling review after mid-Nov. Early Decision closes Nov 15, 2026." },
+    { name: "Hamilton College", location: "Clinton, NY", deadline: "2027-01-04", fee: 65, notes: "ED I closes Nov 15, 2026; ED II Jan 4, 2027." },
+    { name: "Williams College", location: "Williamstown, MA", deadline: "2027-01-08", fee: 65, notes: "Early Decision closes Nov 15, 2026." },
+    { name: "Amherst College", location: "Amherst, MA", deadline: "2027-01-04", fee: 65, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "Wesleyan University", location: "Middletown, CT", deadline: "2027-01-01", fee: 65, notes: "ED I closes Nov 15, 2026; ED II Jan 1, 2027." },
+    { name: "Northwestern University", location: "Evanston, IL", deadline: "2027-01-03", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "Princeton University", location: "Princeton, NJ", deadline: "2027-01-01", fee: 75, notes: "Single-Choice Early Action closes Nov 1, 2026." },
+    { name: "McGill University", location: "Montreal, QC", deadline: "2027-01-15", fee: 141, notes: "Canadian; SAT/ACT optional for U.S. applicants. Freshman deadline Jan 15, 2027. Application fee ~$141 CAD (approximate)." },
+  ];
+
+  // Only these schools are appended to an existing tracker that doesn't
+  // have them. Other schools in SEED_ROWS are used only to fill blank
+  // fields on entries the user has already added themselves.
+  const AUTO_ADD_NAMES = new Set([
+    "boston college",
+    "tufts university",
+    "duke university",
+    "university of north carolina at chapel hill",
+  ]);
 
   function addMissingSeedSchools(apps) {
-    const additions = [
-      { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
-    ];
     let changed = false;
-    additions.forEach((row) => {
-      const exists = apps.some((a) => a.name && a.name.toLowerCase().trim() === row.name.toLowerCase());
-      if (exists) return;
+    SEED_ROWS.forEach((row) => {
       const ref = refFor(row.name) || {};
+      const existing = apps.find((a) => a.name && a.name.toLowerCase().trim() === row.name.toLowerCase());
+      if (existing) {
+        // Fill only missing fields; never overwrite a user's edits.
+        let filled = false;
+        if (!existing.location && row.location) { existing.location = row.location; filled = true; }
+        if (!existing.deadline && row.deadline) { existing.deadline = row.deadline; filled = true; }
+        if ((existing.fee == null || existing.fee === "") && row.fee != null) { existing.fee = row.fee; filled = true; }
+        if (!existing.notes && row.notes) { existing.notes = row.notes; filled = true; }
+        ["avgGpa", "satLow", "satHigh", "acceptRate", "enrollment"].forEach((k) => {
+          if (existing[k] == null && ref[k] != null) { existing[k] = ref[k]; filled = true; }
+        });
+        if (filled) changed = true;
+        return;
+      }
+      if (!AUTO_ADD_NAMES.has(row.name.toLowerCase())) return;
       const nextRank = apps.reduce((m, a) => Math.max(m, a.prefRank || 0), 0) + 1;
       apps.push({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
