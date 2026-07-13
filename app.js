@@ -39,6 +39,7 @@
     "princeton university":                  { avgGpa: 3.95, satLow: 1500, satHigh: 1580, acceptRate: 4.5, enrollment: 5600, psych: true, english: true, testPolicy: "required" },
     "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800, psych: true, english: false, testPolicy: "optional" },
     "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000, psych: true, english: true, testPolicy: "optional" },
+    "boston college":                        { avgGpa: 3.75, satLow: 1420, satHigh: 1520, acceptRate: 15.0, enrollment: 9500, psych: true, english: true, testPolicy: "optional" },
   };
 
   // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
@@ -78,6 +79,7 @@
       { name: "Barnard College", location: "New York, NY", deadline: "2027-01-01", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
       { name: "New York University", location: "New York, NY", deadline: "2027-01-05", fee: 80, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
       { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+      { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
     ];
     return rows.map((r, i) => {
       const ref = refFor(r.name) || {};
@@ -127,6 +129,49 @@
   const ENROLL_SYNC_KEY = "enrollment_sync_v";
   const ENROLL_SYNC_VERSION = 3;
 
+  // One-time seed additions: appends schools that were introduced after
+  // a user's tracker was first populated. Bump SEED_ADD_VERSION and add
+  // rows below to push more schools into existing trackers automatically.
+  const SEED_ADD_KEY = "seed_added_v";
+  const SEED_ADD_VERSION = 1;
+
+  function addMissingSeedSchools(apps) {
+    const additions = [
+      { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    ];
+    let changed = false;
+    additions.forEach((row) => {
+      const exists = apps.some((a) => a.name && a.name.toLowerCase().trim() === row.name.toLowerCase());
+      if (exists) return;
+      const ref = refFor(row.name) || {};
+      const nextRank = apps.reduce((m, a) => Math.max(m, a.prefRank || 0), 0) + 1;
+      apps.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        addedAt: Date.now(),
+        prefRank: nextRank,
+        name: row.name,
+        location: row.location,
+        type: "Regular Decision",
+        deadline: row.deadline || "",
+        status: "Researching",
+        decisionDate: "",
+        portal: "",
+        fee: row.fee != null ? row.fee : null,
+        visitDate: "",
+        visitNotes: "",
+        notes: row.notes || "",
+        checklist: { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false },
+        avgGpa: ref.avgGpa != null ? ref.avgGpa : null,
+        satLow: ref.satLow != null ? ref.satLow : null,
+        satHigh: ref.satHigh != null ? ref.satHigh : null,
+        acceptRate: ref.acceptRate != null ? ref.acceptRate : null,
+        enrollment: ref.enrollment != null ? ref.enrollment : null,
+      });
+      changed = true;
+    });
+    return changed;
+  }
+
   function syncEnrollment(apps) {
     apps.forEach((a) => {
       const ref = refFor(a.name);
@@ -140,11 +185,19 @@
   if (applications.length === 0) {
     applications = buildSeed();
     saveApplications(applications);
-  } else if (Number(localStorage.getItem(ENROLL_SYNC_KEY) || 0) < ENROLL_SYNC_VERSION) {
-    syncEnrollment(applications);
-    saveApplications(applications);
+  } else {
+    let dirty = false;
+    if (Number(localStorage.getItem(ENROLL_SYNC_KEY) || 0) < ENROLL_SYNC_VERSION) {
+      syncEnrollment(applications);
+      dirty = true;
+    }
+    if (Number(localStorage.getItem(SEED_ADD_KEY) || 0) < SEED_ADD_VERSION) {
+      if (addMissingSeedSchools(applications)) dirty = true;
+    }
+    if (dirty) saveApplications(applications);
   }
   localStorage.setItem(ENROLL_SYNC_KEY, String(ENROLL_SYNC_VERSION));
+  localStorage.setItem(SEED_ADD_KEY, String(SEED_ADD_VERSION));
   let editingId = null;
   let deletingId = null;
 
