@@ -40,6 +40,8 @@
     "tufts university":                      { avgGpa: 3.91, satLow: 1440, satHigh: 1540, acceptRate: 10.0, enrollment: 6800, psych: true, english: false, testPolicy: "optional" },
     "mcgill university":                     { avgGpa: 3.70, satLow: 1300, satHigh: 1500, acceptRate: 45.0, enrollment: 27000, psych: true, english: true, testPolicy: "optional" },
     "boston college":                        { avgGpa: 3.75, satLow: 1420, satHigh: 1520, acceptRate: 15.0, enrollment: 9500, psych: true, english: true, testPolicy: "optional" },
+    "duke university":                        { avgGpa: 3.94, satLow: 1500, satHigh: 1570, acceptRate: 5.5, enrollment: 6700, psych: true, english: true, testPolicy: "optional" },
+    "university of north carolina at chapel hill": { avgGpa: 3.85, satLow: 1330, satHigh: 1500, acceptRate: 19.0, enrollment: 20200, psych: true, english: true, testPolicy: "required" },
   };
 
   // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
@@ -55,6 +57,11 @@
     "ucla": "university of california, los angeles",
     "nyu": "new york university",
     "uvm": "university of vermont",
+    "duke": "duke university",
+    "unc": "university of north carolina at chapel hill",
+    "unc chapel hill": "university of north carolina at chapel hill",
+    "unc-chapel hill": "university of north carolina at chapel hill",
+    "university of north carolina": "university of north carolina at chapel hill",
   };
 
   function refFor(name) {
@@ -81,6 +88,8 @@
       { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
       { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
       { name: "Tufts University", location: "Medford, MA", deadline: "2027-01-04", fee: 85, notes: "ED I closes Nov 1, 2026; ED II Jan 4, 2027." },
+      { name: "Duke University", location: "Durham, NC", deadline: "2027-01-03", fee: 85, notes: "Early Decision closes Nov 1, 2026." },
+      { name: "University of North Carolina at Chapel Hill", location: "Chapel Hill, NC", deadline: "2027-01-15", fee: 85, notes: "Early Action closes Oct 15, 2026. Out-of-state admits are much more competitive than in-state." },
     ];
     return rows.map((r, i) => {
       const ref = refFor(r.name) || {};
@@ -134,11 +143,13 @@
   // a user's tracker was first populated. Bump SEED_ADD_VERSION and add
   // rows below to push more schools into existing trackers automatically.
   const SEED_ADD_KEY = "seed_added_v";
-  const SEED_ADD_VERSION = 2;
+  const SEED_ADD_VERSION = 3;
 
   const SEED_ADDITIONS = [
     { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
     { name: "Tufts University", location: "Medford, MA", deadline: "2027-01-04", fee: 85, notes: "ED I closes Nov 1, 2026; ED II Jan 4, 2027." },
+    { name: "Duke University", location: "Durham, NC", deadline: "2027-01-03", fee: 85, notes: "Early Decision closes Nov 1, 2026." },
+    { name: "University of North Carolina at Chapel Hill", location: "Chapel Hill, NC", deadline: "2027-01-15", fee: 85, notes: "Early Action closes Oct 15, 2026. Out-of-state admits are much more competitive than in-state." },
   ];
 
   function addMissingSeedSchools(apps) {
