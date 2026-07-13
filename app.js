@@ -80,6 +80,7 @@
       { name: "New York University", location: "New York, NY", deadline: "2027-01-05", fee: 80, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
       { name: "Wellesley College", location: "Wellesley, MA", deadline: "2027-01-08", fee: 60, notes: "ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
       { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+      { name: "Tufts University", location: "Medford, MA", deadline: "2027-01-04", fee: 85, notes: "ED I closes Nov 1, 2026; ED II Jan 4, 2027." },
     ];
     return rows.map((r, i) => {
       const ref = refFor(r.name) || {};
@@ -133,17 +134,31 @@
   // a user's tracker was first populated. Bump SEED_ADD_VERSION and add
   // rows below to push more schools into existing trackers automatically.
   const SEED_ADD_KEY = "seed_added_v";
-  const SEED_ADD_VERSION = 1;
+  const SEED_ADD_VERSION = 2;
+
+  const SEED_ADDITIONS = [
+    { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
+    { name: "Tufts University", location: "Medford, MA", deadline: "2027-01-04", fee: 85, notes: "ED I closes Nov 1, 2026; ED II Jan 4, 2027." },
+  ];
 
   function addMissingSeedSchools(apps) {
-    const additions = [
-      { name: "Boston College", location: "Chestnut Hill, MA", deadline: "2027-01-01", fee: 80, notes: "Jesuit university. ED I closes Nov 1, 2026; ED II Jan 1, 2027." },
-    ];
     let changed = false;
-    additions.forEach((row) => {
-      const exists = apps.some((a) => a.name && a.name.toLowerCase().trim() === row.name.toLowerCase());
-      if (exists) return;
+    SEED_ADDITIONS.forEach((row) => {
       const ref = refFor(row.name) || {};
+      const existing = apps.find((a) => a.name && a.name.toLowerCase().trim() === row.name.toLowerCase());
+      if (existing) {
+        // Fill only missing fields; never overwrite a user's edits.
+        let filled = false;
+        if (!existing.location && row.location) { existing.location = row.location; filled = true; }
+        if (!existing.deadline && row.deadline) { existing.deadline = row.deadline; filled = true; }
+        if ((existing.fee == null || existing.fee === "") && row.fee != null) { existing.fee = row.fee; filled = true; }
+        if (!existing.notes && row.notes) { existing.notes = row.notes; filled = true; }
+        ["avgGpa", "satLow", "satHigh", "acceptRate", "enrollment"].forEach((k) => {
+          if (existing[k] == null && ref[k] != null) { existing[k] = ref[k]; filled = true; }
+        });
+        if (filled) changed = true;
+        return;
+      }
       const nextRank = apps.reduce((m, a) => Math.max(m, a.prefRank || 0), 0) + 1;
       apps.push({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
