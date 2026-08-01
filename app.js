@@ -838,6 +838,7 @@
       $modalTitle.textContent = "Add College";
       $form.reset();
     }
+    setAutofillStatus("");
     $modalOverlay.classList.add("active");
     fields.name.focus();
   }
@@ -846,6 +847,109 @@
     $modalOverlay.classList.remove("active");
     editingId = null;
   }
+
+  // --- Auto-fill stats: built-in reference first, then the U.S. Dept. of
+  // Education College Scorecard API (public data; DEMO_KEY allows a few
+  // dozen lookups per hour). Only blank fields are filled — typed values
+  // are never overwritten. GPA comes only from the built-in list; the
+  // Scorecard doesn't publish admitted-GPA figures.
+  const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
+  const SCORECARD_KEY = "DEMO_KEY";
+
+  const $autofillBtn = document.getElementById("btn-autofill");
+  const $autofillStatus = document.getElementById("autofill-status");
+
+  function setAutofillStatus(text, isError) {
+    $autofillStatus.hidden = !text;
+    $autofillStatus.textContent = text || "";
+    $autofillStatus.classList.toggle("is-error", !!isError);
+  }
+
+  function fillIfBlank(field, value) {
+    if (value == null || field.value !== "") return false;
+    field.value = value;
+    return true;
+  }
+
+  async function fetchScorecard(name) {
+    const wanted = [
+      "school.name", "school.city", "school.state",
+      "latest.student.size",
+      "latest.admissions.admission_rate.overall",
+      "latest.admissions.sat_scores.25th_percentile.critical_reading",
+      "latest.admissions.sat_scores.75th_percentile.critical_reading",
+      "latest.admissions.sat_scores.25th_percentile.math",
+      "latest.admissions.sat_scores.75th_percentile.math",
+    ].join(",");
+    const url = SCORECARD_URL +
+      "?api_key=" + SCORECARD_KEY +
+      "&school.name=" + encodeURIComponent(name) +
+      "&per_page=10&fields=" + encodeURIComponent(wanted);
+    const r = await fetch(url);
+    if (r.status === 429) throw new Error("Lookup limit reached — try again in an hour.");
+    if (!r.ok) throw new Error("Lookup failed (HTTP " + r.status + ").");
+    const data = await r.json();
+    const results = data && Array.isArray(data.results) ? data.results : [];
+    if (!results.length) return null;
+    const lower = name.toLowerCase().trim();
+    return results.find((s) => (s["school.name"] || "").toLowerCase() === lower) || results[0];
+  }
+
+  async function autoFillStats() {
+    const name = fields.name.value.trim();
+    if (!name) {
+      setAutofillStatus("Enter a college name first.", true);
+      return;
+    }
+
+    let filled = 0;
+    const ref = refFor(name);
+    if (ref) {
+      if (fillIfBlank(fields.avgGpa, ref.avgGpa)) filled++;
+      if (fillIfBlank(fields.satLow, ref.satLow)) filled++;
+      if (fillIfBlank(fields.satHigh, ref.satHigh)) filled++;
+      if (fillIfBlank(fields.acceptRate, ref.acceptRate)) filled++;
+      if (fillIfBlank(fields.enrollment, ref.enrollment)) filled++;
+      setAutofillStatus(filled
+        ? "Filled " + filled + " field" + (filled !== 1 ? "s" : "") + " from the built-in reference list."
+        : "Nothing to fill — every stat field already has a value.");
+      return;
+    }
+
+    setAutofillStatus("Looking up “" + name + "”…");
+    $autofillBtn.disabled = true;
+    try {
+      const s = await fetchScorecard(name);
+      if (!s) {
+        setAutofillStatus("No match found for “" + name + "”. Check the spelling, or fill the fields manually.", true);
+        return;
+      }
+      const size = s["latest.student.size"];
+      const rate = s["latest.admissions.admission_rate.overall"];
+      const cr25 = s["latest.admissions.sat_scores.25th_percentile.critical_reading"];
+      const cr75 = s["latest.admissions.sat_scores.75th_percentile.critical_reading"];
+      const m25 = s["latest.admissions.sat_scores.25th_percentile.math"];
+      const m75 = s["latest.admissions.sat_scores.75th_percentile.math"];
+
+      if (fillIfBlank(fields.enrollment, size)) filled++;
+      if (rate != null && fillIfBlank(fields.acceptRate, Math.round(rate * 1000) / 10)) filled++;
+      if (cr25 != null && m25 != null && fillIfBlank(fields.satLow, cr25 + m25)) filled++;
+      if (cr75 != null && m75 != null && fillIfBlank(fields.satHigh, cr75 + m75)) filled++;
+      const cityState = [s["school.city"], s["school.state"]].filter(Boolean).join(", ");
+      if (fillIfBlank(fields.location, cityState)) filled++;
+
+      const matched = s["school.name"] || name;
+      setAutofillStatus(filled
+        ? "Found " + matched + " — filled " + filled + " field" + (filled !== 1 ? "s" : "") + "."
+        : "Found " + matched + ", but every field already has a value.");
+    } catch (e) {
+      setAutofillStatus(e.message, true);
+    } finally {
+      $autofillBtn.disabled = false;
+    }
+  }
+
+  $autofillBtn.addEventListener("click", autoFillStats);
 
   function openDeleteModal(id) {
     const app = applications.find((a) => a.id === id);
