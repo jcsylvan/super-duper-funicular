@@ -54,6 +54,7 @@
     "boston college":                        { avgGpa: 3.75, satLow: 1420, satHigh: 1520, acceptRate: 15.0, enrollment: 9500, psych: true, english: true, testPolicy: "optional" },
     "duke university":                        { avgGpa: 3.94, satLow: 1500, satHigh: 1570, acceptRate: 5.5, enrollment: 6700, psych: true, english: true, testPolicy: "optional" },
     "university of north carolina at chapel hill": { avgGpa: 3.85, satLow: 1330, satHigh: 1500, acceptRate: 19.0, enrollment: 20200, psych: true, english: true, testPolicy: "required" },
+    "smith college":                         { avgGpa: 3.90, satLow: 1330, satHigh: 1520, acceptRate: 21.0, enrollment: 2500, psych: true, english: true, testPolicy: "optional" },
   };
 
   // Short / alternate names mapped to their ADMISSIONS_DATA key, so a
@@ -74,6 +75,7 @@
     "unc chapel hill": "university of north carolina at chapel hill",
     "unc-chapel hill": "university of north carolina at chapel hill",
     "university of north carolina": "university of north carolina at chapel hill",
+    "smith": "smith college",
   };
 
   function refFor(name) {
@@ -166,7 +168,7 @@
   // a user's tracker was first populated. Bump SEED_ADD_VERSION and add
   // rows below to push more schools into existing trackers automatically.
   const SEED_ADD_KEY = "seed_added_v";
-  const SEED_ADD_VERSION = 4;
+  const SEED_ADD_VERSION = 5;
 
   // Single source of truth for the seed. Every school in ADMISSIONS_DATA
   // has a matching row here so buildSeed produces a complete tracker and
@@ -198,6 +200,7 @@
     { name: "Northwestern University", location: "Evanston, IL", deadline: "2027-01-03", fee: 75, notes: "Early Decision closes Nov 1, 2026." },
     { name: "Princeton University", location: "Princeton, NJ", deadline: "2027-01-01", fee: 75, notes: "Single-Choice Early Action closes Nov 1, 2026." },
     { name: "McGill University", location: "Montreal, QC", deadline: "2027-01-15", fee: 141, notes: "Canadian; SAT/ACT optional for U.S. applicants. Freshman deadline Jan 15, 2027. Application fee ~$141 CAD (approximate)." },
+    { name: "Smith College", location: "Northampton, MA", deadline: "2027-01-15", fee: 60, notes: "Women's college. ED I closes Nov 15, 2026; ED II Jan 1, 2027." },
   ];
 
   // Only these schools are appended to an existing tracker that doesn't
@@ -871,7 +874,7 @@
     return true;
   }
 
-  async function fetchScorecard(name) {
+  async function scorecardQuery(name) {
     const wanted = [
       "school.name", "school.city", "school.state",
       "latest.student.size",
@@ -893,6 +896,43 @@
     if (!results.length) return null;
     const lower = name.toLowerCase().trim();
     return results.find((s) => (s["school.name"] || "").toLowerCase() === lower) || results[0];
+  }
+
+  // The API matches names exactly (and case-sensitively), so retry with
+  // normalized capitalizations of the typed name before giving up.
+  function nameVariants(name) {
+    const typed = name.trim();
+    const words = typed.toLowerCase().split(/\s+/);
+    const SMALL = new Set(["of", "the", "at", "in", "and", "for"]);
+    const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    const titleSmall = words.map((w, i) => (i > 0 && SMALL.has(w) ? w : cap(w))).join(" ");
+    const title = words.map(cap).join(" ");
+    return [...new Set([typed, titleSmall, title])];
+  }
+
+  async function fetchScorecard(name) {
+    for (const variant of nameVariants(name)) {
+      const hit = await scorecardQuery(variant);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  // Normalize a Scorecard result row into tracker field values.
+  function scorecardStats(s) {
+    const cr25 = s["latest.admissions.sat_scores.25th_percentile.critical_reading"];
+    const cr75 = s["latest.admissions.sat_scores.75th_percentile.critical_reading"];
+    const m25 = s["latest.admissions.sat_scores.25th_percentile.math"];
+    const m75 = s["latest.admissions.sat_scores.75th_percentile.math"];
+    const rate = s["latest.admissions.admission_rate.overall"];
+    return {
+      name: s["school.name"] || "",
+      enrollment: s["latest.student.size"] ?? null,
+      acceptRate: rate != null ? Math.round(rate * 1000) / 10 : null,
+      satLow: cr25 != null && m25 != null ? cr25 + m25 : null,
+      satHigh: cr75 != null && m75 != null ? cr75 + m75 : null,
+      location: [s["school.city"], s["school.state"]].filter(Boolean).join(", "),
+    };
   }
 
   async function autoFillStats() {
@@ -924,21 +964,14 @@
         setAutofillStatus("No match found for “" + name + "”. Check the spelling, or fill the fields manually.", true);
         return;
       }
-      const size = s["latest.student.size"];
-      const rate = s["latest.admissions.admission_rate.overall"];
-      const cr25 = s["latest.admissions.sat_scores.25th_percentile.critical_reading"];
-      const cr75 = s["latest.admissions.sat_scores.75th_percentile.critical_reading"];
-      const m25 = s["latest.admissions.sat_scores.25th_percentile.math"];
-      const m75 = s["latest.admissions.sat_scores.75th_percentile.math"];
+      const stats = scorecardStats(s);
+      if (fillIfBlank(fields.enrollment, stats.enrollment)) filled++;
+      if (fillIfBlank(fields.acceptRate, stats.acceptRate)) filled++;
+      if (fillIfBlank(fields.satLow, stats.satLow)) filled++;
+      if (fillIfBlank(fields.satHigh, stats.satHigh)) filled++;
+      if (fillIfBlank(fields.location, stats.location || null)) filled++;
 
-      if (fillIfBlank(fields.enrollment, size)) filled++;
-      if (rate != null && fillIfBlank(fields.acceptRate, Math.round(rate * 1000) / 10)) filled++;
-      if (cr25 != null && m25 != null && fillIfBlank(fields.satLow, cr25 + m25)) filled++;
-      if (cr75 != null && m75 != null && fillIfBlank(fields.satHigh, cr75 + m75)) filled++;
-      const cityState = [s["school.city"], s["school.state"]].filter(Boolean).join(", ");
-      if (fillIfBlank(fields.location, cityState)) filled++;
-
-      const matched = s["school.name"] || name;
+      const matched = stats.name || name;
       setAutofillStatus(filled
         ? "Found " + matched + " — filled " + filled + " field" + (filled !== 1 ? "s" : "") + "."
         : "Found " + matched + ", but every field already has a value.");
@@ -950,6 +983,88 @@
   }
 
   $autofillBtn.addEventListener("click", autoFillStats);
+
+  // --- Fill Missing Stats: sweep every school, fill blanks in place ---
+  const $fillMissingBtn = document.getElementById("btn-fill-missing");
+  const $fillStatus = document.getElementById("fill-status");
+
+  function setFillStatus(text, isError) {
+    $fillStatus.hidden = !text;
+    $fillStatus.textContent = text || "";
+    $fillStatus.classList.toggle("is-error", !!isError);
+  }
+
+  const STAT_KEYS = ["avgGpa", "satLow", "satHigh", "acceptRate", "enrollment"];
+
+  function statsMissing(a) {
+    return STAT_KEYS.some((k) => a[k] == null) || !a.location;
+  }
+
+  function fillFromReference(a) {
+    const ref = refFor(a.name);
+    if (!ref) return 0;
+    let n = 0;
+    STAT_KEYS.forEach((k) => {
+      if (a[k] == null && ref[k] != null) { a[k] = ref[k]; n++; }
+    });
+    return n;
+  }
+
+  async function fillMissingStats() {
+    const targets = applications.filter(statsMissing);
+    if (!targets.length) {
+      setFillStatus("No schools are missing stats.");
+      return;
+    }
+    $fillMissingBtn.disabled = true;
+    let touched = 0;
+    const misses = [];
+    let stoppedEarly = null;
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        const a = targets[i];
+        setFillStatus("Checking " + a.name + " (" + (i + 1) + "/" + targets.length + ")…");
+        let n = fillFromReference(a);
+        const needsApi = !refFor(a.name) &&
+          (a.enrollment == null || a.acceptRate == null || a.satLow == null || a.satHigh == null || !a.location);
+        if (needsApi) {
+          try {
+            const s = await fetchScorecard(a.name);
+            if (s) {
+              const stats = scorecardStats(s);
+              if (a.enrollment == null && stats.enrollment != null) { a.enrollment = stats.enrollment; n++; }
+              if (a.acceptRate == null && stats.acceptRate != null) { a.acceptRate = stats.acceptRate; n++; }
+              if (a.satLow == null && stats.satLow != null) { a.satLow = stats.satLow; n++; }
+              if (a.satHigh == null && stats.satHigh != null) { a.satHigh = stats.satHigh; n++; }
+              if (!a.location && stats.location) { a.location = stats.location; n++; }
+            } else {
+              misses.push(a.name);
+            }
+          } catch (e) {
+            // A rate-limit error will fail every remaining lookup too.
+            stoppedEarly = e.message;
+            if (n > 0) touched++;
+            break;
+          }
+        }
+        if (n > 0) touched++;
+      }
+      if (touched > 0) {
+        saveApplications(applications);
+        refresh();
+      }
+      let msg = touched > 0
+        ? "Filled stats for " + touched + " school" + (touched !== 1 ? "s" : "") + "."
+        : "Nothing new to fill.";
+      if (misses.length) msg += " No match for: " + misses.join(", ") + ".";
+      if (stoppedEarly) msg += " Stopped early: " + stoppedEarly;
+      setFillStatus(msg, !!stoppedEarly || misses.length > 0);
+    } finally {
+      $fillMissingBtn.disabled = false;
+    }
+  }
+
+  $fillMissingBtn.addEventListener("click", fillMissingStats);
 
   function openDeleteModal(id) {
     const app = applications.find((a) => a.id === id);
