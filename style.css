@@ -363,6 +363,16 @@ tbody tr:hover {
   color: var(--text-muted);
 }
 
+.fill-status {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--primary);
+}
+
+.fill-status.is-error {
+  color: var(--danger);
+}
+
 .col-enrollment {
   min-width: 110px;
 }
