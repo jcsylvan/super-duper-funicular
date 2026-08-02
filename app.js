@@ -7,6 +7,18 @@
   const SYNC_GIST_KEY = "sync_gist_id";
   const SYNC_LOCAL_TS_KEY = "sync_local_ts";
   const SYNC_FILENAME = "college-tracker.json";
+  const DATA_VERSION = 3;
+
+  // Sync state. Declared before the data layer: saveApplications() calls
+  // schedulePush(), and it can run during startup (seed or migrations).
+  let syncDebounce = null;
+  let syncInitDone = false;
+
+  const VALID_STATUSES = new Set([
+    "Researching", "In Progress", "Submitted", "Accepted",
+    "Rejected", "Waitlisted", "Deferred", "Withdrawn",
+  ]);
+  const EMPTY_CHECKLIST = { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false };
 
   // Admissions reference data keyed by lowercase college name.
   // 2026-27 cycle estimates: avgGpa (unweighted), satLow/satHigh (mid-50%),
@@ -89,7 +101,7 @@
         visitDate: "",
         visitNotes: "",
         notes: r.notes,
-        checklist: { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false },
+        checklist: { ...EMPTY_CHECKLIST },
         avgGpa: ref.avgGpa ?? null,
         satLow: ref.satLow ?? null,
         satHigh: ref.satHigh ?? null,
@@ -100,18 +112,48 @@
   }
 
   // --- Data ---
+  // Coerce rows from outside sources (old saves, imports, gist pulls) into
+  // the shape the render code expects; rows without a usable name are dropped.
+  function sanitizeApplications(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((a) => a && typeof a === "object" && typeof a.name === "string" && a.name.trim())
+      .map((a) => ({
+        ...a,
+        id: typeof a.id === "string" && a.id ? a.id : generateId(),
+        name: a.name.trim(),
+        location: typeof a.location === "string" ? a.location : "",
+        type: typeof a.type === "string" && a.type ? a.type : "Regular Decision",
+        status: VALID_STATUSES.has(a.status) ? a.status : "Researching",
+        deadline: typeof a.deadline === "string" ? a.deadline : "",
+        decisionDate: typeof a.decisionDate === "string" ? a.decisionDate : "",
+        portal: typeof a.portal === "string" ? a.portal : "",
+        visitDate: typeof a.visitDate === "string" ? a.visitDate : "",
+        visitNotes: typeof a.visitNotes === "string" ? a.visitNotes : "",
+        notes: typeof a.notes === "string" ? a.notes : "",
+        checklist: a.checklist && typeof a.checklist === "object"
+          ? { ...EMPTY_CHECKLIST, ...a.checklist }
+          : { ...EMPTY_CHECKLIST },
+      }));
+  }
+
   function loadApplications() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      return sanitizeApplications(JSON.parse(localStorage.getItem(STORAGE_KEY)));
     } catch {
       return [];
     }
   }
 
-  function saveApplications(apps) {
+  // opts.silent skips the sync-timestamp bump and push. Used for startup
+  // migrations, which shouldn't make this device look newer than a remote
+  // copy that has real user edits.
+  function saveApplications(apps, opts) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
-    localStorage.setItem(SYNC_LOCAL_TS_KEY, String(Date.now()));
-    schedulePush();
+    if (!opts || !opts.silent) {
+      localStorage.setItem(SYNC_LOCAL_TS_KEY, String(Date.now()));
+      schedulePush();
+    }
   }
 
   // One-time enrollment sync: applies the current reference enrollment
@@ -189,7 +231,7 @@
       if (!AUTO_ADD_NAMES.has(row.name.toLowerCase())) return;
       const nextRank = apps.reduce((m, a) => Math.max(m, a.prefRank || 0), 0) + 1;
       apps.push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        id: generateId(),
         addedAt: Date.now(),
         prefRank: nextRank,
         name: row.name,
@@ -203,7 +245,7 @@
         visitDate: "",
         visitNotes: "",
         notes: row.notes || "",
-        checklist: { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false },
+        checklist: { ...EMPTY_CHECKLIST },
         avgGpa: ref.avgGpa != null ? ref.avgGpa : null,
         satLow: ref.satLow != null ? ref.satLow : null,
         satHigh: ref.satHigh != null ? ref.satHigh : null,
@@ -227,7 +269,7 @@
   let applications = loadApplications();
   if (applications.length === 0) {
     applications = buildSeed();
-    saveApplications(applications);
+    saveApplications(applications, { silent: true });
   } else {
     let dirty = false;
     if (Number(localStorage.getItem(ENROLL_SYNC_KEY) || 0) < ENROLL_SYNC_VERSION) {
@@ -237,7 +279,7 @@
     if (Number(localStorage.getItem(SEED_ADD_KEY) || 0) < SEED_ADD_VERSION) {
       if (addMissingSeedSchools(applications)) dirty = true;
     }
-    if (dirty) saveApplications(applications);
+    if (dirty) saveApplications(applications, { silent: true });
   }
   localStorage.setItem(ENROLL_SYNC_KEY, String(ENROLL_SYNC_VERSION));
   localStorage.setItem(SEED_ADD_KEY, String(SEED_ADD_VERSION));
@@ -246,6 +288,7 @@
 
   // --- DOM refs ---
   const $tbody = document.getElementById("app-tbody");
+  const $appTable = document.getElementById("app-table");
   const $emptyState = document.getElementById("empty-state");
   const $modalOverlay = document.getElementById("modal-overlay");
   const $modalTitle = document.getElementById("modal-title");
@@ -290,6 +333,7 @@
   function formatDate(dateStr) {
     if (!dateStr) return "—";
     const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d)) return "—";
     return d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -307,13 +351,20 @@
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const target = new Date(dateStr + "T00:00:00");
+    if (isNaN(target)) return null;
     return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
   }
 
+  // Escapes quotes too, so output is safe inside HTML attributes
+  // (title="...", href="..."), not just in element text.
   function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   function statusClass(status) {
@@ -511,13 +562,13 @@
 
     if (list.length === 0) {
       $emptyState.style.display = "block";
-      document.getElementById("app-table").style.display = "none";
+      $appTable.style.display = "none";
       updateStats();
       return;
     }
 
     $emptyState.style.display = "none";
-    document.getElementById("app-table").style.display = "table";
+    $appTable.style.display = "table";
 
     const total = applications.length;
     const maxEnroll = applications.reduce((m, a) => Math.max(m, a.enrollment || 0), 0);
@@ -565,7 +616,7 @@
         visitHtml = '<span class="visit-badge" title="' + escapeHtml(tipParts.join(" — ")) + '">&#9873; Visited</span>';
       }
 
-      // Test-policy badge (from public reference data)
+      // Reference-data lookups (test policy + program badges)
       const refRow = refFor(app.name) || {};
       let tpHtml = "";
       if (refRow.testPolicy === "optional") {
@@ -595,20 +646,24 @@
       }
 
       // Standout academic programs (from public reputational rankings)
-      const prog = refFor(app.name) || {};
       let progHtml = '<span class="prog-na">—</span>';
-      if (prog.psych || prog.english) {
+      if (refRow.psych || refRow.english) {
         const badges =
-          (prog.psych ? '<span class="prog-badge prog-psych">Psych</span>' : "") +
-          (prog.english ? '<span class="prog-badge prog-english">English</span>' : "");
+          (refRow.psych ? '<span class="prog-badge prog-psych">Psych</span>' : "") +
+          (refRow.english ? '<span class="prog-badge prog-english">English</span>' : "");
         const flds = [];
-        if (prog.psych) flds.push("Psychology");
-        if (prog.english) flds.push("English");
+        if (refRow.psych) flds.push("Psychology");
+        if (refRow.english) flds.push("English");
         const note = "Strong reputation in " + flds.join(" & ") + ".";
         progHtml =
           '<div class="prog-wrap">' + badges +
           '<span class="prog-note">' + escapeHtml(note) + "</span></div>";
       }
+
+      // Only link portals with an explicit http(s) scheme.
+      const portalHtml = app.portal && /^https?:\/\//i.test(app.portal)
+        ? '<a class="portal-link" href="' + escapeHtml(app.portal) + '" target="_blank" rel="noopener noreferrer">Portal</a>'
+        : "";
 
       const upDisabled = app.prefRank <= 1 ? "disabled" : "";
       const downDisabled = app.prefRank >= total ? "disabled" : "";
@@ -624,7 +679,7 @@
         <td class="col-name">
           <strong>${escapeHtml(app.name)}</strong>
           ${app.location ? '<span class="college-location">' + escapeHtml(app.location) + "</span>" : ""}
-          ${app.portal ? '<a class="portal-link" href="' + escapeHtml(app.portal) + '" target="_blank" rel="noopener noreferrer">Portal</a>' : ""}
+          ${portalHtml}
           ${tpHtml}
           ${visitHtml}
         </td>
@@ -783,6 +838,7 @@
       $modalTitle.textContent = "Add College";
       $form.reset();
     }
+    setAutofillStatus("");
     $modalOverlay.classList.add("active");
     fields.name.focus();
   }
@@ -791,6 +847,109 @@
     $modalOverlay.classList.remove("active");
     editingId = null;
   }
+
+  // --- Auto-fill stats: built-in reference first, then the U.S. Dept. of
+  // Education College Scorecard API (public data; DEMO_KEY allows a few
+  // dozen lookups per hour). Only blank fields are filled — typed values
+  // are never overwritten. GPA comes only from the built-in list; the
+  // Scorecard doesn't publish admitted-GPA figures.
+  const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
+  const SCORECARD_KEY = "DEMO_KEY";
+
+  const $autofillBtn = document.getElementById("btn-autofill");
+  const $autofillStatus = document.getElementById("autofill-status");
+
+  function setAutofillStatus(text, isError) {
+    $autofillStatus.hidden = !text;
+    $autofillStatus.textContent = text || "";
+    $autofillStatus.classList.toggle("is-error", !!isError);
+  }
+
+  function fillIfBlank(field, value) {
+    if (value == null || field.value !== "") return false;
+    field.value = value;
+    return true;
+  }
+
+  async function fetchScorecard(name) {
+    const wanted = [
+      "school.name", "school.city", "school.state",
+      "latest.student.size",
+      "latest.admissions.admission_rate.overall",
+      "latest.admissions.sat_scores.25th_percentile.critical_reading",
+      "latest.admissions.sat_scores.75th_percentile.critical_reading",
+      "latest.admissions.sat_scores.25th_percentile.math",
+      "latest.admissions.sat_scores.75th_percentile.math",
+    ].join(",");
+    const url = SCORECARD_URL +
+      "?api_key=" + SCORECARD_KEY +
+      "&school.name=" + encodeURIComponent(name) +
+      "&per_page=10&fields=" + encodeURIComponent(wanted);
+    const r = await fetch(url);
+    if (r.status === 429) throw new Error("Lookup limit reached — try again in an hour.");
+    if (!r.ok) throw new Error("Lookup failed (HTTP " + r.status + ").");
+    const data = await r.json();
+    const results = data && Array.isArray(data.results) ? data.results : [];
+    if (!results.length) return null;
+    const lower = name.toLowerCase().trim();
+    return results.find((s) => (s["school.name"] || "").toLowerCase() === lower) || results[0];
+  }
+
+  async function autoFillStats() {
+    const name = fields.name.value.trim();
+    if (!name) {
+      setAutofillStatus("Enter a college name first.", true);
+      return;
+    }
+
+    let filled = 0;
+    const ref = refFor(name);
+    if (ref) {
+      if (fillIfBlank(fields.avgGpa, ref.avgGpa)) filled++;
+      if (fillIfBlank(fields.satLow, ref.satLow)) filled++;
+      if (fillIfBlank(fields.satHigh, ref.satHigh)) filled++;
+      if (fillIfBlank(fields.acceptRate, ref.acceptRate)) filled++;
+      if (fillIfBlank(fields.enrollment, ref.enrollment)) filled++;
+      setAutofillStatus(filled
+        ? "Filled " + filled + " field" + (filled !== 1 ? "s" : "") + " from the built-in reference list."
+        : "Nothing to fill — every stat field already has a value.");
+      return;
+    }
+
+    setAutofillStatus("Looking up “" + name + "”…");
+    $autofillBtn.disabled = true;
+    try {
+      const s = await fetchScorecard(name);
+      if (!s) {
+        setAutofillStatus("No match found for “" + name + "”. Check the spelling, or fill the fields manually.", true);
+        return;
+      }
+      const size = s["latest.student.size"];
+      const rate = s["latest.admissions.admission_rate.overall"];
+      const cr25 = s["latest.admissions.sat_scores.25th_percentile.critical_reading"];
+      const cr75 = s["latest.admissions.sat_scores.75th_percentile.critical_reading"];
+      const m25 = s["latest.admissions.sat_scores.25th_percentile.math"];
+      const m75 = s["latest.admissions.sat_scores.75th_percentile.math"];
+
+      if (fillIfBlank(fields.enrollment, size)) filled++;
+      if (rate != null && fillIfBlank(fields.acceptRate, Math.round(rate * 1000) / 10)) filled++;
+      if (cr25 != null && m25 != null && fillIfBlank(fields.satLow, cr25 + m25)) filled++;
+      if (cr75 != null && m75 != null && fillIfBlank(fields.satHigh, cr75 + m75)) filled++;
+      const cityState = [s["school.city"], s["school.state"]].filter(Boolean).join(", ");
+      if (fillIfBlank(fields.location, cityState)) filled++;
+
+      const matched = s["school.name"] || name;
+      setAutofillStatus(filled
+        ? "Found " + matched + " — filled " + filled + " field" + (filled !== 1 ? "s" : "") + "."
+        : "Found " + matched + ", but every field already has a value.");
+    } catch (e) {
+      setAutofillStatus(e.message, true);
+    } finally {
+      $autofillBtn.disabled = false;
+    }
+  }
+
+  $autofillBtn.addEventListener("click", autoFillStats);
 
   function openDeleteModal(id) {
     const app = applications.find((a) => a.id === id);
@@ -905,7 +1064,7 @@
     );
     let html = `<strong>${entries.length}</strong> college${entries.length !== 1 ? "s" : ""} will be added.`;
     if (dupes.length > 0) {
-      html += ` <span class="bulk-warn">${dupes.length} duplicate${dupes.length !== 1 ? "s" : ""} detected: ${dupes.map((d) => d.name).join(", ")}</span>`;
+      html += ` <span class="bulk-warn">${dupes.length} duplicate${dupes.length !== 1 ? "s" : ""} detected: ${dupes.map((d) => escapeHtml(d.name)).join(", ")}</span>`;
     }
     $bulkPreview.innerHTML = html;
     $bulkPreview.hidden = false;
@@ -929,7 +1088,6 @@
     if (entries.length === 0) return;
     const defaultType = $bulkType.value;
     const defaultStatus = $bulkStatus.value;
-    const emptyChecklist = { essay: false, lor: false, transcript: false, scores: false, financial: false, interview: false };
 
     entries.forEach((entry) => {
       const ref = refFor(entry.name) || {};
@@ -948,7 +1106,7 @@
         visitDate: "",
         visitNotes: "",
         notes: "",
-        checklist: { ...emptyChecklist },
+        checklist: { ...EMPTY_CHECKLIST },
         avgGpa: ref.avgGpa ?? null,
         satLow: ref.satLow ?? null,
         satHigh: ref.satHigh ?? null,
@@ -975,7 +1133,7 @@
   // --- Export / Import ---
   function exportData() {
     const payload = {
-      version: 2,
+      version: DATA_VERSION,
       exportedAt: new Date().toISOString(),
       applications,
       profile,
@@ -1008,7 +1166,7 @@
       if (!confirm("Importing will replace your current colleges and ranking. Continue?")) {
         return;
       }
-      applications = parsed.applications;
+      applications = sanitizeApplications(parsed.applications);
       if (parsed.profile && typeof parsed.profile === "object") {
         profile = parsed.profile;
         saveProfile(profile);
@@ -1133,9 +1291,6 @@
   populateProfileFields();
 
   // --- Cross-device sync via GitHub Gist ---
-  let syncDebounce = null;
-  let syncInitDone = false;
-
   function getSyncConfig() {
     const token = localStorage.getItem(SYNC_TOKEN_KEY);
     const gistId = localStorage.getItem(SYNC_GIST_KEY);
@@ -1163,11 +1318,22 @@
 
   function currentPayload() {
     return {
-      version: 3,
+      version: DATA_VERSION,
       lastModified: Date.now(),
       applications,
       profile,
     };
+  }
+
+  // Replace local state with a pulled gist payload and re-render.
+  function applyRemotePayload(remote, remoteTs) {
+    applications = sanitizeApplications(remote.applications);
+    profile = remote.profile && typeof remote.profile === "object" ? remote.profile : {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    localStorage.setItem(SYNC_LOCAL_TS_KEY, String(remoteTs));
+    populateProfileFields();
+    refresh();
   }
 
   async function fetchRemote(token, gistId) {
@@ -1234,13 +1400,7 @@
       const localTs = Number(localStorage.getItem(SYNC_LOCAL_TS_KEY) || 0);
       const remoteTs = remote ? Number(remote.lastModified || 0) : 0;
       if (remote && remoteTs > localTs) {
-        applications = Array.isArray(remote.applications) ? remote.applications : [];
-        profile = (remote.profile && typeof remote.profile === "object") ? remote.profile : {};
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-        localStorage.setItem(SYNC_LOCAL_TS_KEY, String(remoteTs));
-        populateProfileFields();
-        refresh();
+        applyRemotePayload(remote, remoteTs);
       } else if (!remote || localTs > remoteTs) {
         await pushRemote(cfg.token, cfg.gistId, currentPayload());
       }
@@ -1294,13 +1454,7 @@
       const localTs = Number(localStorage.getItem(SYNC_LOCAL_TS_KEY) || 0);
       const remoteTs = remote ? Number(remote.lastModified || 0) : 0;
       if (remote && remoteTs > localTs) {
-        applications = Array.isArray(remote.applications) ? remote.applications : [];
-        profile = (remote.profile && typeof remote.profile === "object") ? remote.profile : {};
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-        localStorage.setItem(SYNC_LOCAL_TS_KEY, String(remoteTs));
-        populateProfileFields();
-        refresh();
+        applyRemotePayload(remote, remoteTs);
       } else {
         await pushRemote(token, gistId, currentPayload());
       }

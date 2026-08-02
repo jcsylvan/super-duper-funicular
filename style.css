@@ -340,6 +340,29 @@ tbody tr:hover {
   color: #8a3326;
 }
 
+/* === Auto-fill stats === */
+.autofill-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.autofill-status {
+  font-size: 0.8rem;
+  color: var(--primary);
+}
+
+.autofill-status.is-error {
+  color: var(--danger);
+}
+
+.autofill-hint {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .col-enrollment {
   min-width: 110px;
 }
