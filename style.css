@@ -252,6 +252,45 @@ main {
   box-shadow: 0 0 0 3px rgba(201, 162, 74, 0.35);
 }
 
+/* View toggle: Board (the game board) or Ledger (the table) */
+.view-toggle {
+  display: inline-flex;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.view-btn {
+  padding: 0.4rem 0.7rem;
+  border: none;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-type);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.view-btn + .view-btn {
+  border-left: 1.5px solid var(--ink);
+}
+
+.view-btn:hover {
+  background: var(--parchment-dark);
+}
+
+.view-btn[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.view-btn:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: -3px;
+}
+
 /* === Buttons ============================================================== */
 .btn {
   display: inline-flex;
@@ -410,6 +449,322 @@ main {
   margin-bottom: 0.7rem;
   padding-bottom: 0.4rem;
   border-bottom: 1px dashed rgba(28, 26, 23, 0.35);
+}
+
+/* === The game board ======================================================= */
+/* The play area is the hallway: mustard squares ruled in ink. Each college
+   is a room with double walls and a door onto the hallway. */
+.game-board {
+  --hall: #dcc98c;
+  --hall-line: rgba(74, 52, 12, 0.28);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  background-color: var(--hall);
+  background-image:
+    linear-gradient(var(--hall-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hall-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 3px var(--hall), inset 0 0 0 4px var(--ink), var(--shadow);
+  scrollbar-color: var(--brass-dark) var(--parchment-dark);
+}
+
+.game-board[hidden],
+.table-container[hidden] {
+  display: none;
+}
+
+.room-grid {
+  --room-min-h: 124px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: minmax(var(--room-min-h), 1fr);
+  grid-auto-flow: dense;
+  gap: 14px;
+  min-height: 100%;
+}
+
+.room {
+  --pawn: var(--grey);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.55rem 0.6rem 0.7rem;
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 2px var(--parchment), inset 0 0 0 3px rgba(28, 26, 23, 0.55), 0 2px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.room:hover,
+.room:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 2px var(--parchment), inset 0 0 0 3px rgba(28, 26, 23, 0.55), 0 8px 18px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+
+.room:focus-visible {
+  border-color: var(--brass);
+}
+
+/* The door: a gap in the bottom wall opening onto the hallway */
+.room::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 24px;
+  height: 7px;
+  transform: translateX(-50%);
+  background: var(--hall);
+  border: 2px solid var(--ink);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+}
+
+.room.is-overdue {
+  border-color: var(--scarlet);
+}
+
+.room.is-overdue::after {
+  border-color: var(--scarlet);
+}
+
+.room.status-withdrawn,
+.room.status-rejected {
+  background: var(--parchment-dark);
+}
+
+.room.status-withdrawn .room-name,
+.room.status-rejected .room-name {
+  color: var(--ink-muted);
+}
+
+.room-rank {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.45rem;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.3rem;
+  line-height: 20px;
+  text-align: center;
+  background: var(--scarlet);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-type);
+  font-size: 0.68rem;
+}
+
+/* The suspect's pawn standing in the room */
+.room-pawn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.45rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.6), transparent 45%), var(--pawn);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.room-visited {
+  position: absolute;
+  top: 0.35rem;
+  right: 1.85rem;
+  font-size: 0.72rem;
+  color: var(--green);
+}
+
+.room-name {
+  height: 33px;
+  margin: 0.15rem 1.35rem 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 0.8rem;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.room-name--long {
+  font-size: 0.6rem;
+  line-height: 1.12;
+  letter-spacing: 0.02em;
+  -webkit-line-clamp: 3;
+}
+
+.room-loc {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  font-style: italic;
+  text-align: center;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-deadline {
+  margin-top: auto;
+  padding-top: 0.3rem;
+  font-family: var(--font-type);
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  text-align: center;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.room-deadline .deadline-tag {
+  margin-left: 0.25rem;
+}
+
+.room-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.room-row .status-badge {
+  font-size: 0.6rem;
+  padding: 0.05rem 0.4rem 0.05rem 0.3rem;
+}
+
+.room-row .fit-badge {
+  font-size: 0.58rem;
+  padding: 0.08rem 0.35rem;
+}
+
+.room-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.room-foot .chk-badge {
+  width: 13px;
+  height: 13px;
+  font-size: 0.52rem;
+}
+
+.room-tools {
+  display: inline-flex;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.room:hover .room-tools,
+.room:focus-within .room-tools {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .room-tools {
+    opacity: 1;
+  }
+}
+
+.room-tools .btn-icon {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.15rem;
+}
+
+/* The confidential envelope in the middle of the board */
+.envelope {
+  position: relative;
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.6rem 0.9rem;
+  overflow: hidden;
+  text-align: center;
+  background: var(--manila);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 40%);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 3px var(--manila), inset 0 0 0 4px rgba(28, 26, 23, 0.55), 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Envelope flap */
+.envelope::before {
+  content: "";
+  position: absolute;
+  inset: 4px 4px auto 4px;
+  height: 34%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
+}
+
+.envelope .stamp {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  font-size: 0.6rem;
+}
+
+.env-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--scarlet);
+  margin-bottom: 0.1rem;
+}
+
+.env-line {
+  max-width: 100%;
+  font-family: var(--font-type);
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.env-line b {
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.board-empty {
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  margin: 2rem auto;
+  max-width: 420px;
 }
 
 /* === The table room ======================================================= */
@@ -1240,6 +1595,22 @@ body.locked {
 
 /* === Responsive =========================================================== */
 @media (max-width: 1366px) {
+  .game-board {
+    padding: 10px;
+  }
+  .room-grid {
+    --room-min-h: 100px;
+    gap: 10px;
+  }
+  .room-row {
+    display: none;
+  }
+  .room {
+    padding: 0.45rem 0.5rem 0.5rem;
+  }
+  .room-deadline {
+    padding-top: 0.1rem;
+  }
   .stat-card {
     flex-direction: column;
     gap: 0;
@@ -1358,6 +1729,14 @@ body.locked {
     max-width: none;
   }
 
+  .view-toggle {
+    grid-column: 1 / -1;
+  }
+
+  .view-btn {
+    flex: 1;
+  }
+
   .profile-toggle-arrow,
   .ranker-toggle-arrow {
     margin-left: auto;
@@ -1373,6 +1752,19 @@ body.locked {
   .table-container {
     flex: none;
     overflow: auto;
+  }
+
+  .game-board {
+    flex: none;
+    overflow: visible;
+    padding: 10px;
+  }
+
+  .room-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: auto;
+    gap: 10px;
+    min-height: 0;
   }
 
   .form-row {

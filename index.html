@@ -133,6 +133,10 @@
       <button class="btn btn-secondary" id="btn-sync">Sync</button>
       <input type="file" id="import-file" accept="application/json,.json" hidden />
       <div class="controls-right">
+        <div class="view-toggle" role="group" aria-label="View">
+          <button type="button" class="view-btn" id="view-board" aria-pressed="true">Board</button>
+          <button type="button" class="view-btn" id="view-table" aria-pressed="false">Ledger</button>
+        </div>
         <input type="text" id="search-input" placeholder="Search colleges..." aria-label="Search colleges" />
         <select id="filter-status" aria-label="Filter by status">
           <option value="all">All statuses</option>
@@ -156,8 +160,16 @@
       </div>
     </section>
 
-    <!-- Application Table -->
-    <section class="table-container">
+    <!-- Game Board: one room per college -->
+    <section class="game-board" id="game-board" aria-label="College board">
+      <div class="room-grid" id="room-grid"></div>
+      <div class="empty-state board-empty" id="board-empty" hidden>
+        <p>No suspects on the board yet. Click <strong>+ Add College</strong> to open the case.</p>
+      </div>
+    </section>
+
+    <!-- Application Table (the ledger view) -->
+    <section class="table-container" id="table-container" hidden>
       <table id="app-table">
         <thead>
           <tr>
