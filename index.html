@@ -3,34 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>College Application Tracker &mdash; 2027</title>
+  <title>College Application Tracker &mdash; Case File 2027</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Special+Elite&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="locked">
   <!-- Password gate: shown until the correct password is entered. -->
   <div class="auth-gate" id="auth-gate">
     <form class="auth-box" id="auth-form" autocomplete="off">
+      <span class="stamp">Confidential</span>
+      <p class="auth-eyebrow">Case File No. 2027</p>
       <h1 class="auth-title">College Application Tracker</h1>
-      <p class="auth-prompt">This page is private. Enter the password to continue.</p>
+      <p class="auth-prompt">This envelope is sealed. Enter the password to open the case.</p>
       <input type="password" id="auth-input" class="auth-input"
              placeholder="Password" autocomplete="current-password" aria-label="Password" />
-      <button type="submit" class="btn btn-primary auth-submit">Unlock</button>
+      <button type="submit" class="btn btn-primary auth-submit">Open the envelope</button>
       <p class="auth-error" id="auth-error" hidden>Incorrect password &mdash; try again.</p>
     </form>
   </div>
 
-  <header>
-    <h1>College Application Tracker</h1>
-    <p class="subtitle">2026&ndash;27 application cycle &bull; entering Fall 2027</p>
-  </header>
+  <div class="board">
+  <header class="board-head">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/></svg>
+      </span>
+      <div class="brand-text">
+        <h1>College Application Tracker</h1>
+        <p class="subtitle">Case file &bull; 2026&ndash;27 application cycle &bull; entering Fall 2027</p>
+      </div>
+    </div>
 
-  <main>
-    <!-- Stats Dashboard -->
-    <section class="stats-bar" id="stats-bar">
-      <div class="stat-card">
+    <!-- Stats Dashboard: one card per suspect -->
+    <section class="stats-bar" id="stats-bar" aria-label="Application counts">
+      <div class="stat-card stat-total">
         <span class="stat-number" id="stat-total">0</span>
         <span class="stat-label">Total</span>
       </div>
@@ -55,8 +63,13 @@
         <span class="stat-label">Rejected</span>
       </div>
     </section>
+  </header>
 
-    <!-- My Profile -->
+  <main>
+    <!-- Controls -->
+    <section class="controls">
+      <button class="btn btn-primary" id="btn-add">+ Add College</button>
+      <button class="btn btn-secondary" id="btn-bulk-add">Bulk Add</button>
     <section class="profile-panel" id="profile-panel">
       <button class="profile-toggle" id="profile-toggle">
         <span class="profile-toggle-label">My Profile</span>
@@ -64,6 +77,7 @@
         <span class="profile-toggle-arrow" id="profile-arrow">&#9660;</span>
       </button>
       <div class="profile-body" id="profile-body" hidden>
+        <p class="panel-room">The Study &mdash; your credentials, used to score fit</p>
         <div class="form-row">
           <div class="form-group">
             <label for="profile-gpa">GPA (unweighted, 0&ndash;4.0)</label>
@@ -101,7 +115,6 @@
       </div>
     </section>
 
-    <!-- Preference Ranker -->
     <section class="ranker-panel" id="ranker-panel">
       <button class="ranker-toggle" id="ranker-toggle">
         <span class="ranker-toggle-label">Preference Ranker</span>
@@ -109,23 +122,20 @@
         <span class="ranker-toggle-arrow" id="ranker-arrow">&#9660;</span>
       </button>
       <div class="ranker-body" id="ranker-body" hidden>
+        <p class="panel-room">The Library &mdash; order the suspects by preference</p>
         <p class="ranker-instructions">Drag colleges to order them by personal preference &mdash; <strong>#1 is your top choice</strong>. Use the arrows if you prefer not to drag. Your ranking is saved automatically.</p>
         <ol class="ranker-list" id="ranker-list"></ol>
       </div>
     </section>
 
-    <!-- Controls -->
-    <section class="controls">
-      <button class="btn btn-primary" id="btn-add">+ Add College</button>
-      <button class="btn btn-secondary" id="btn-bulk-add">Bulk Add</button>
       <button class="btn btn-secondary" id="btn-export">Export</button>
       <button class="btn btn-secondary" id="btn-import">Import</button>
-      <button class="btn btn-secondary" id="btn-sync">Sync Settings</button>
+      <button class="btn btn-secondary" id="btn-sync">Sync</button>
       <input type="file" id="import-file" accept="application/json,.json" hidden />
       <div class="controls-right">
-        <input type="text" id="search-input" placeholder="Search colleges..." />
-        <select id="filter-status">
-          <option value="all">All Statuses</option>
+        <input type="text" id="search-input" placeholder="Search colleges..." aria-label="Search colleges" />
+        <select id="filter-status" aria-label="Filter by status">
+          <option value="all">All statuses</option>
           <option value="Researching">Researching</option>
           <option value="In Progress">In Progress</option>
           <option value="Submitted">Submitted</option>
@@ -135,13 +145,13 @@
           <option value="Deferred">Deferred</option>
           <option value="Withdrawn">Withdrawn</option>
         </select>
-        <select id="sort-by">
-          <option value="preference">Sort by Preference</option>
-          <option value="deadline">Sort by Deadline</option>
-          <option value="name">Sort by Name</option>
-          <option value="status">Sort by Status</option>
-          <option value="added">Sort by Date Added</option>
-          <option value="fit">Sort by Fit</option>
+        <select id="sort-by" aria-label="Sort">
+          <option value="preference">Sort: Preference</option>
+          <option value="deadline">Sort: Deadline</option>
+          <option value="name">Sort: Name</option>
+          <option value="status">Sort: Status</option>
+          <option value="added">Sort: Date Added</option>
+          <option value="fit">Sort: Fit</option>
         </select>
       </div>
     </section>
@@ -151,36 +161,39 @@
       <table id="app-table">
         <thead>
           <tr>
-            <th>Rank</th>
-            <th>College Name</th>
-            <th>Fit</th>
-            <th>Enrollment</th>
-            <th>Programs</th>
-            <th>Type</th>
-            <th>Deadline</th>
-            <th>Status</th>
-            <th>Decision</th>
-            <th>Notes</th>
-            <th>Actions</th>
+            <th class="col-rank">Rank</th>
+            <th class="col-name">College</th>
+            <th class="col-fit">Fit</th>
+            <th class="col-enrollment">Size</th>
+            <th class="col-programs">Programs</th>
+            <th class="col-type">Type</th>
+            <th class="col-deadline">Deadline</th>
+            <th class="col-status">Status</th>
+            <th class="col-checklist" title="Essays, Letters of Rec, Transcript, Test Scores, Financial Aid, Interview">Notebook</th>
+            <th class="col-decision">Decision</th>
+            <th class="col-notes">Notes</th>
+            <th class="col-actions"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody id="app-tbody">
         </tbody>
       </table>
       <div class="empty-state" id="empty-state">
-        <p>No applications yet. Click <strong>+ Add College</strong> to get started!</p>
+        <p>No suspects on the board yet. Click <strong>+ Add College</strong> to open the case.</p>
       </div>
     </section>
 
-    <p class="storage-note">Edits, rankings, and your profile are saved in this browser automatically. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it on another device. <span id="sync-status" class="sync-status"></span></p>
+    <p class="storage-note">Saved in this browser automatically. <strong>Export</strong> downloads a backup, <strong>Import</strong> restores it elsewhere. <span id="sync-status" class="sync-status"></span></p>
   </main>
+  </div><!-- /.board -->
 
   <!-- Add/Edit Modal -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal">
       <div class="modal-header">
         <h2 id="modal-title">Add College</h2>
-        <button class="modal-close" id="modal-close">&times;</button>
+        <span class="stamp" aria-hidden="true">Confidential</span>
+        <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
       </div>
       <form id="app-form">
         <div class="form-row">
@@ -306,7 +319,7 @@
     <div class="modal modal-small">
       <div class="modal-header">
         <h2>Confirm Delete</h2>
-        <button class="modal-close" id="delete-modal-close">&times;</button>
+        <button class="modal-close" id="delete-modal-close" aria-label="Close">&times;</button>
       </div>
       <p id="delete-msg">Are you sure you want to delete this application?</p>
       <div class="form-actions">
@@ -321,7 +334,8 @@
     <div class="modal">
       <div class="modal-header">
         <h2>Bulk Add Colleges</h2>
-        <button class="modal-close" id="bulk-modal-close">&times;</button>
+        <span class="stamp" aria-hidden="true">Confidential</span>
+        <button class="modal-close" id="bulk-modal-close" aria-label="Close">&times;</button>
       </div>
       <p class="bulk-instructions">Enter one college per line. Add a location after a comma or in parentheses &mdash; e.g. <code>Brown University, Providence RI</code> or <code>Cornell University (Ithaca, NY)</code>.</p>
       <textarea id="bulk-textarea" rows="10" placeholder="Harvard University, Cambridge MA
@@ -362,7 +376,7 @@ Williams College (Williamstown, MA)
     <div class="modal">
       <div class="modal-header">
         <h2>Cross-Device Sync</h2>
-        <button class="modal-close" id="sync-modal-close">&times;</button>
+        <button class="modal-close" id="sync-modal-close" aria-label="Close">&times;</button>
       </div>
       <p class="sync-help">Store your tracker data in a private GitHub Gist so it stays in sync across every device you sign in on. Paste a GitHub personal access token with the <code>gist</code> scope and the ID of an (initially empty) private gist.</p>
       <div class="form-group full-width">

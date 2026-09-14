@@ -367,6 +367,15 @@
       .replace(/'/g, "&#39;");
   }
 
+  const TYPE_ABBR = {
+    "Regular Decision": "RD",
+    "Early Action": "EA",
+    "Restrictive Early Action": "REA",
+    "Early Decision": "ED",
+    "Early Decision II": "ED II",
+    "Rolling": "Rolling",
+  };
+
   function statusClass(status) {
     return "status-" + status.toLowerCase().replace(/\s+/g, "-");
   }
@@ -591,12 +600,12 @@
 
       // Checklist summary
       const checkItems = [
-        { key: "essay", label: "Es" },
-        { key: "lor", label: "LoR" },
-        { key: "transcript", label: "Tr" },
-        { key: "scores", label: "Sc" },
-        { key: "financial", label: "Fi" },
-        { key: "interview", label: "In" },
+        { key: "essay", label: "Essays" },
+        { key: "lor", label: "Letters of Rec" },
+        { key: "transcript", label: "Transcript" },
+        { key: "scores", label: "Test Scores" },
+        { key: "financial", label: "Financial Aid" },
+        { key: "interview", label: "Interview" },
       ];
       const checkHtml = checkItems
         .map((c) => {
@@ -620,11 +629,11 @@
       const refRow = refFor(app.name) || {};
       let tpHtml = "";
       if (refRow.testPolicy === "optional") {
-        tpHtml = '<span class="tp-badge tp-optional" title="Standardized test scores are optional">Test-Optional</span>';
+        tpHtml = '<span class="tp-badge tp-optional" title="Test-optional: standardized test scores are optional">Test-Opt</span>';
       } else if (refRow.testPolicy === "required") {
-        tpHtml = '<span class="tp-badge tp-required" title="Standardized test scores are required">Test-Required</span>';
+        tpHtml = '<span class="tp-badge tp-required" title="Test-required: standardized test scores are required">Test-Req</span>';
       } else if (refRow.testPolicy === "blind") {
-        tpHtml = '<span class="tp-badge tp-blind" title="Standardized tests are not considered in admissions">Test-Blind</span>';
+        tpHtml = '<span class="tp-badge tp-blind" title="Test-blind: standardized tests are not considered in admissions">Test-Blind</span>';
       }
 
       // Fit badge
@@ -655,9 +664,7 @@
         if (refRow.psych) flds.push("Psychology");
         if (refRow.english) flds.push("English");
         const note = "Strong reputation in " + flds.join(" & ") + ".";
-        progHtml =
-          '<div class="prog-wrap">' + badges +
-          '<span class="prog-note">' + escapeHtml(note) + "</span></div>";
+        progHtml = '<div class="prog-wrap" title="' + escapeHtml(note) + '">' + badges + "</div>";
       }
 
       // Only link portals with an explicit http(s) scheme.
@@ -686,10 +693,11 @@
         <td class="col-fit">${fitHtml}</td>
         <td class="col-enrollment">${enrollHtml}</td>
         <td class="col-programs">${progHtml}</td>
-        <td>${escapeHtml(app.type)}</td>
-        <td>${deadlineHtml}</td>
-        <td><span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span></td>
-        <td>${formatDate(app.decisionDate)} <span class="checklist-summary">${checkHtml}</span></td>
+        <td class="col-type" title="${escapeHtml(app.type)}">${escapeHtml(TYPE_ABBR[app.type] || app.type)}</td>
+        <td class="col-deadline">${deadlineHtml}</td>
+        <td class="col-status"><span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span></td>
+        <td class="col-checklist"><span class="checklist-summary">${checkHtml}</span></td>
+        <td class="col-decision">${formatDate(app.decisionDate)}</td>
         <td class="col-notes" title="${escapeHtml(app.notes || "")}">${notesPreview}</td>
         <td class="col-actions">
           <button class="btn-icon btn-edit" data-id="${app.id}" title="Edit">&#9998;</button>
@@ -799,11 +807,47 @@
     }
   });
 
-  document.getElementById("ranker-toggle").addEventListener("click", () => {
-    const hidden = $rankerBody.hidden;
-    $rankerBody.hidden = !hidden;
-    $rankerArrow.textContent = hidden ? "▲" : "▼";
+  // --- Drop-down panels (profile + ranker) ---
+  // Both panels hang off the toolbar. Only one is open at a time, and a click
+  // outside either panel (or Escape) closes whichever is open.
+  const PANELS = [];
+
+  function setPanel(panel, open) {
+    panel.body.hidden = !open;
+    panel.arrow.textContent = open ? "▲" : "▼";
+    panel.toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function closeAllPanels() {
+    PANELS.forEach((p) => setPanel(p, false));
+  }
+
+  function registerPanel(toggleId, body, arrow) {
+    const toggle = document.getElementById(toggleId);
+    const panel = { toggle, body, arrow };
+    PANELS.push(panel);
+    setPanel(panel, false);
+    toggle.addEventListener("click", () => {
+      const willOpen = body.hidden;
+      closeAllPanels();
+      setPanel(panel, willOpen);
+    });
+    return panel;
+  }
+
+  document.addEventListener("click", (e) => {
+    // composedPath() is captured at dispatch, so it still works when the click
+    // re-rendered the ranker list and detached the button that was pressed.
+    const path = e.composedPath ? e.composedPath() : [e.target];
+    if (PANELS.some((p) => path.includes(p.toggle) || path.includes(p.body))) return;
+    closeAllPanels();
   });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllPanels();
+  });
+
+  registerPanel("ranker-toggle", $rankerBody, $rankerArrow);
 
   // --- Modal ---
   function openModal(app) {
@@ -1257,7 +1301,7 @@
     if (profile.gpa) parts.push(`GPA ${profile.gpa}`);
     if (profile.sat) parts.push(`SAT ${profile.sat}`);
     if (profile.act) parts.push(`ACT ${profile.act}`);
-    $profileSummary.textContent = parts.length ? parts.join(" / ") : "Not set — click to expand";
+    $profileSummary.textContent = parts.length ? parts.join(" / ") : "Not set";
   }
 
   function populateProfileFields() {
@@ -1269,11 +1313,7 @@
     updateProfileSummary();
   }
 
-  document.getElementById("profile-toggle").addEventListener("click", () => {
-    const hidden = $profileBody.hidden;
-    $profileBody.hidden = !hidden;
-    $profileArrow.textContent = hidden ? "▲" : "▼";
-  });
+  registerPanel("profile-toggle", $profileBody, $profileArrow);
 
   document.getElementById("profile-save").addEventListener("click", () => {
     profile = {
