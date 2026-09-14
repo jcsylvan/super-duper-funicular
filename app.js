@@ -572,6 +572,7 @@
     if (list.length === 0) {
       $emptyState.style.display = "block";
       $appTable.style.display = "none";
+      renderBoard(list);
       updateStats();
       return;
     }
@@ -707,8 +708,222 @@
       $tbody.appendChild(tr);
     });
 
+    renderBoard(list);
     updateStats();
   }
+
+  // --- Render: game board ---
+  // Every college is a room on the board. Rooms follow the same search,
+  // filter and sort as the ledger; the confidential envelope sits in the
+  // middle of the grid and carries the case summary.
+  const $board = document.getElementById("game-board");
+  const $roomGrid = document.getElementById("room-grid");
+  const $boardEmpty = document.getElementById("board-empty");
+  const $tableContainer = document.getElementById("table-container");
+  const VIEW_KEY = "college_tracker_view";
+  const ROOM_MIN_WIDTH = 150;
+  let lastBoardList = [];
+
+  // Pick the column count: the fewest columns (so the widest rooms) whose
+  // rows still fit the board's height, falling back to as many columns as
+  // the width allows. Row height and gap come from the stylesheet so the
+  // phone breakpoint can change them. Returns 0 when CSS should decide.
+  function boardColumns(cells) {
+    if (window.innerWidth <= 768) return 0;
+    const cs = getComputedStyle($roomGrid);
+    const gap = parseFloat(cs.rowGap) || 14;
+    const minH = parseFloat(cs.getPropertyValue("--room-min-h")) || 118;
+    const width = $roomGrid.clientWidth || $board.clientWidth || 0;
+    const pad = parseFloat(getComputedStyle($board).paddingTop) || 14;
+    const height = $board.clientHeight - pad * 2;
+    if (!width) return 6;
+    const maxCols = Math.max(2, Math.floor((width + gap) / (ROOM_MIN_WIDTH + gap)));
+    for (let n = 2; n <= maxCols; n++) {
+      const rows = Math.ceil(cells / n);
+      if (rows * (minH * 1.06) + (rows - 1) * gap <= height) return n;
+    }
+    return maxCols;
+  }
+
+  function roomHtml(app, total) {
+    const days = daysUntil(app.deadline);
+    const live = app.status !== "Submitted" && app.status !== "Accepted" && app.status !== "Rejected" && app.status !== "Withdrawn";
+    let tag = "";
+    let urgency = "";
+    if (days !== null && live) {
+      if (days < 0) { tag = '<span class="deadline-tag overdue">Overdue</span>'; urgency = " is-overdue"; }
+      else if (days <= 7) { tag = `<span class="deadline-tag urgent">${days}d</span>`; urgency = " is-urgent"; }
+      else if (days <= 30) { tag = `<span class="deadline-tag soon">${days}d</span>`; }
+    }
+
+    const checkItems = [
+      { key: "essay", label: "Essays" },
+      { key: "lor", label: "Letters of Rec" },
+      { key: "transcript", label: "Transcript" },
+      { key: "scores", label: "Test Scores" },
+      { key: "financial", label: "Financial Aid" },
+      { key: "interview", label: "Interview" },
+    ];
+    const checkHtml = checkItems
+      .map((c) => {
+        const done = app.checklist && app.checklist[c.key];
+        return `<span class="chk-badge ${done ? "chk-done" : ""}" title="${c.label}">${done ? "&#10003;" : "&#10007;"}</span>`;
+      })
+      .join("");
+
+    const fit = computeFit(app);
+    const fitHtml = fit
+      ? `<span class="fit-badge ${fit.cls}" title="${escapeHtml(fit.tooltip)}">${escapeHtml(fit.label)}</span>`
+      : "";
+
+    const refRow = refFor(app.name) || {};
+    const tipParts = [app.type];
+    if (app.enrollment) tipParts.push(formatNumber(app.enrollment) + " undergraduates");
+    if (refRow.testPolicy) tipParts.push("Test-" + refRow.testPolicy);
+    if (refRow.psych || refRow.english) {
+      const flds = [];
+      if (refRow.psych) flds.push("Psychology");
+      if (refRow.english) flds.push("English");
+      tipParts.push("Strong in " + flds.join(" & "));
+    }
+    if (app.visitDate) tipParts.push("Visited " + formatDate(app.visitDate));
+    if (app.notes) tipParts.push(app.notes);
+    const tip = escapeHtml(tipParts.join(" \u00b7 ")) + " \u00b7 Click to edit";
+
+    const visited = app.visitDate || app.visitNotes ? '<span class="room-visited" title="Campus visited">&#9873;</span>' : "";
+    const upDisabled = app.prefRank <= 1 ? "disabled" : "";
+    const downDisabled = app.prefRank >= total ? "disabled" : "";
+
+    return `
+      <article class="room ${statusClass(app.status)}${urgency}" data-id="${app.id}" title="${tip}" tabindex="0">
+        <span class="room-rank">${app.prefRank}</span>
+        <span class="room-pawn" title="${escapeHtml(app.status)}"></span>
+        ${visited}
+        <h3 class="room-name${app.name.length > 24 ? " room-name--long" : ""}">${escapeHtml(app.name)}</h3>
+        <p class="room-loc">${escapeHtml(app.location || "")}</p>
+        <p class="room-deadline">${app.deadline ? formatDate(app.deadline) : "No deadline"} ${tag}</p>
+        <div class="room-row">
+          <span class="status-badge ${statusClass(app.status)}">${escapeHtml(app.status)}</span>
+          ${fitHtml}
+        </div>
+        <div class="room-foot">
+          <span class="checklist-summary">${checkHtml}</span>
+          <span class="room-tools">
+            <button class="btn-icon rank-up" data-id="${app.id}" title="Higher preference" ${upDisabled}>&#9650;</button>
+            <button class="btn-icon rank-down" data-id="${app.id}" title="Lower preference" ${downDisabled}>&#9660;</button>
+            <button class="btn-icon btn-edit" data-id="${app.id}" title="Edit">&#9998;</button>
+            <button class="btn-icon btn-delete" data-id="${app.id}" title="Delete">&#128465;</button>
+          </span>
+        </div>
+      </article>`;
+  }
+
+  function envelopeHtml() {
+    const ranked = [...applications].sort((a, b) => a.prefRank - b.prefRank);
+    const upcoming = applications
+      .filter((a) => a.deadline && a.status !== "Submitted" && a.status !== "Accepted" && a.status !== "Rejected" && a.status !== "Withdrawn")
+      .map((a) => ({ a, days: daysUntil(a.deadline) }))
+      .filter((x) => x.days !== null && x.days >= 0)
+      .sort((x, y) => x.days - y.days)[0];
+    const submitted = applications.filter((a) => a.status === "Submitted").length;
+    const accepted = applications.filter((a) => a.status === "Accepted").length;
+
+    const lines = [];
+    lines.push(`<span class="env-line"><b>${applications.length}</b> suspects on the board</span>`);
+    if (ranked.length) lines.push(`<span class="env-line">Top choice: <b>${escapeHtml(ranked[0].name)}</b></span>`);
+    if (upcoming) {
+      lines.push(`<span class="env-line" title="${escapeHtml(upcoming.a.name)} \u00b7 ${formatDate(upcoming.a.deadline)}">Next up: <b>${escapeHtml(upcoming.a.name)}</b> &middot; ${upcoming.days} day${upcoming.days === 1 ? "" : "s"}</span>`);
+    }
+    lines.push(`<span class="env-line"><b>${submitted}</b> submitted &middot; <b>${accepted}</b> accepted</span>`);
+
+    return `
+      <div class="envelope" aria-label="Case summary">
+        <span class="stamp">Confidential</span>
+        <span class="env-title">Case File</span>
+        ${lines.join("")}
+      </div>`;
+  }
+
+  function renderBoard(list) {
+    lastBoardList = list;
+    const total = applications.length;
+    const rooms = list.map((app) => roomHtml(app, total));
+
+    if (!rooms.length) {
+      $roomGrid.innerHTML = "";
+      $boardEmpty.hidden = false;
+      return;
+    }
+    $boardEmpty.hidden = true;
+
+    // Drop the envelope into the middle of the grid. It spans two columns,
+    // so the index counts cells filled by the rooms before it.
+    const cells = rooms.length + 2;
+    const cols = boardColumns(cells);
+    if (cols) {
+      $roomGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      const rows = Math.ceil(cells / cols);
+      const centerRow = Math.floor((rows - 1) / 2);
+      const centerCol = Math.max(0, Math.floor((cols - 2) / 2));
+      const at = Math.min(rooms.length, centerRow * cols + centerCol);
+      rooms.splice(at, 0, envelopeHtml());
+    } else {
+      $roomGrid.style.gridTemplateColumns = "";
+      rooms.splice(Math.floor(rooms.length / 2), 0, envelopeHtml());
+    }
+
+    $roomGrid.innerHTML = rooms.join("");
+  }
+
+  // Re-centre the envelope when the board changes width.
+  let boardResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(boardResizeTimer);
+    boardResizeTimer = setTimeout(() => { if (!$board.hidden) renderBoard(lastBoardList); }, 120);
+  });
+
+  function setView(view) {
+    const board = view !== "table";
+    $board.hidden = !board;
+    $tableContainer.hidden = board;
+    document.getElementById("view-board").setAttribute("aria-pressed", board ? "true" : "false");
+    document.getElementById("view-table").setAttribute("aria-pressed", board ? "false" : "true");
+    try { localStorage.setItem(VIEW_KEY, board ? "board" : "table"); } catch (e) { /* private mode */ }
+    if (board) renderBoard(lastBoardList);
+  }
+
+  document.getElementById("view-board").addEventListener("click", () => setView("board"));
+  document.getElementById("view-table").addEventListener("click", () => setView("table"));
+
+  // Clicking a room opens it for editing; the small tools inside a room do
+  // their own thing without opening the editor.
+  $roomGrid.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-id]");
+    if (btn) {
+      const id = btn.dataset.id;
+      if (btn.classList.contains("btn-edit")) {
+        const app = applications.find((a) => a.id === id);
+        if (app) openModal(app);
+      } else if (btn.classList.contains("btn-delete")) {
+        openDeleteModal(id);
+      } else if (btn.classList.contains("rank-up")) {
+        movePreference(id, -1);
+      } else if (btn.classList.contains("rank-down")) {
+        movePreference(id, 1);
+      }
+      return;
+    }
+    const room = e.target.closest(".room[data-id]");
+    if (!room) return;
+    const app = applications.find((a) => a.id === room.dataset.id);
+    if (app) openModal(app);
+  });
+
+  $roomGrid.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || !e.target.classList.contains("room")) return;
+    const app = applications.find((a) => a.id === e.target.dataset.id);
+    if (app) openModal(app);
+  });
 
   // --- Render: preference ranker ---
   const $rankerList = document.getElementById("ranker-list");
@@ -1524,6 +1739,9 @@
   });
 
   // --- Init ---
+  let savedView = "board";
+  try { savedView = localStorage.getItem(VIEW_KEY) || "board"; } catch (e) { /* private mode */ }
+  setView(savedView);
   refresh();
   initSync();
 })();
