@@ -34,3 +34,9 @@ Open `index.html` in a browser — no build step or server required.
 - Add, edit, delete, bulk-add, search, filter, and sort.
 - All edits, rankings, and your profile are saved in the browser via `localStorage`.
 - **Export / Import** JSON backups to preserve and move your data between devices.
+
+## Also in this repository
+
+- `jcsylvan.ai-site/` holds the **Document Marking Scanner**, a standalone browser tool built for
+  the Tools page on jcsylvan.ai, with the card snippet for `tools.html` and installation notes.
+  It is unrelated to the college tracker and is kept here only until it moves to the site repository.
